@@ -17,16 +17,10 @@ interface MatchContextType {
 }
 
 const MatchContext = createContext<MatchContextType>({
-  leagues: [],
-  allMatches: [],
-  liveMatches: [],
-  isLoading: true,
-  lastUpdate: null,
-  refresh: async () => {},
-  getMatchById: () => undefined,
-  combos: [],
-  comboHistory: [],
-  refreshCombos: () => {},
+  leagues: [], allMatches: [], liveMatches: [],
+  isLoading: true, lastUpdate: null,
+  refresh: async () => {}, getMatchById: () => undefined,
+  combos: [], comboHistory: [], refreshCombos: () => {},
 });
 
 export function MatchProvider({ children }: { children: React.ReactNode }) {
@@ -45,7 +39,6 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
       setLastUpdate(new Date());
       const all = data.flatMap(l => l.matches);
       allMatchesRef.current = all;
-      // Auto-generate combos
       const newCombos = generateCombos(all);
       setCombos(newCombos);
     } catch (e) {
@@ -62,31 +55,27 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [loadMatches]);
 
-  // Save combo history daily
   useEffect(() => {
-    if (combos.length > 0) {
-      saveComboHistory(combos);
-    }
+    if (combos.length > 0) { saveComboHistory(combos); }
   }, [combos]);
 
   const loadComboHistory = async () => {
     try {
       const stored = await AsyncStorage.getItem('dave_combo_history');
       if (stored) setComboHistory(JSON.parse(stored));
-    } catch (e) { /* empty */ }
+    } catch (_e) { /* */ }
   };
 
   const saveComboHistory = async (newCombos: Combo[]) => {
     try {
       const existing = await AsyncStorage.getItem('dave_combo_history');
       const history: Combo[] = existing ? JSON.parse(existing) : [];
-      // Add new combos not already in history
       const existingIds = new Set(history.map(c => c.id));
       const toAdd = newCombos.filter(c => !existingIds.has(c.id));
-      const updated = [...toAdd, ...history].slice(0, 100); // keep last 100
+      const updated = [...toAdd, ...history].slice(0, 100);
       setComboHistory(updated);
       await AsyncStorage.setItem('dave_combo_history', JSON.stringify(updated));
-    } catch (e) { /* empty */ }
+    } catch (_e) { /* */ }
   };
 
   const refreshCombos = () => {
@@ -99,9 +88,7 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
   const getMatchById = (id: number) => allMatches.find(m => m.id === id);
 
   return (
-    <MatchContext.Provider
-      value={{ leagues, allMatches, liveMatches, isLoading, lastUpdate, refresh: loadMatches, getMatchById, combos, comboHistory, refreshCombos }}
-    >
+    <MatchContext.Provider value={{ leagues, allMatches, liveMatches, isLoading, lastUpdate, refresh: loadMatches, getMatchById, combos, comboHistory, refreshCombos }}>
       {children}
     </MatchContext.Provider>
   );

@@ -45,20 +45,12 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isLoading: true,
-  login: async () => false,
-  loginAdmin: () => false,
-  logout: () => {},
-  isAuthenticated: false,
-  canAnalyze: () => false,
-  useAnalysis: () => {},
-  remainingAnalyses: 0,
-  paymentRequests: [],
-  addPaymentRequest: () => {},
-  approvePayment: () => {},
-  rejectPayment: () => {},
-  activateUserTier: () => {},
+  user: null, isLoading: true,
+  login: async () => false, loginAdmin: () => false, logout: () => {},
+  isAuthenticated: false, canAnalyze: () => false, useAnalysis: () => {},
+  remainingAnalyses: 0, paymentRequests: [],
+  addPaymentRequest: () => {}, approvePayment: () => {},
+  rejectPayment: () => {}, activateUserTier: () => {},
   registeredUsers: [],
 });
 
@@ -68,16 +60,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
   const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
       const stored = await AsyncStorage.getItem('dave_user');
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Reset daily analyses if new day
         const today = new Date().toDateString();
         if (parsed.lastAnalysisDate !== today) {
           parsed.analysesUsedToday = 0;
@@ -89,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (reqs) setPaymentRequests(JSON.parse(reqs));
       const users = await AsyncStorage.getItem('dave_registered_users');
       if (users) setRegisteredUsers(JSON.parse(users));
-    } catch (e) {
+    } catch (_e) {
       console.log('Error loading data');
     } finally {
       setIsLoading(false);
@@ -108,14 +97,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       bookmakerId, bookmaker, isAdmin: false,
       tier: 'free', analysesUsedToday: 0, lastAnalysisDate: today,
     };
-    // Check if user already registered with a tier
     const existing = registeredUsers.find(u => u.bookmakerId === bookmakerId);
-    if (existing) {
-      newUser.tier = existing.tier;
-      newUser.tierExpiry = existing.tierExpiry;
-    }
+    if (existing) { newUser.tier = existing.tier; newUser.tierExpiry = existing.tierExpiry; }
     await saveUser(newUser);
-    // Add to registered users
     const updated = registeredUsers.filter(u => u.bookmakerId !== bookmakerId);
     updated.push(newUser);
     setRegisteredUsers(updated);
@@ -136,10 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false;
   };
 
-  const logout = () => {
-    setUser(null);
-    AsyncStorage.removeItem('dave_user');
-  };
+  const logout = () => { setUser(null); AsyncStorage.removeItem('dave_user'); };
 
   const canAnalyze = useCallback((): boolean => {
     if (!user) return false;
@@ -151,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const remainingAnalyses = (() => {
     if (!user) return 0;
-    if (user.isAdmin || user.tier !== 'free') return -1; // unlimited
+    if (user.isAdmin || user.tier !== 'free') return -1;
     const today = new Date().toDateString();
     const used = user.lastAnalysisDate === today ? user.analysesUsedToday : 0;
     return Math.max(0, config.freeAnalysisPerDay - used);
@@ -183,11 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const approvePayment = async (id: string) => {
     const updated = paymentRequests.map(r => {
       if (r.id === id) {
-        // Activate user tier
         const plan = config.pricing.find(p => p.name === r.plan);
-        if (plan) {
-          activateUserTier(r.userId, plan.id as UserTier);
-        }
+        if (plan) { activateUserTier(r.userId, plan.id as UserTier); }
         return { ...r, status: 'approved' as const };
       }
       return r;
@@ -197,39 +175,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const rejectPayment = async (id: string) => {
-    const updated = paymentRequests.map(r =>
-      r.id === id ? { ...r, status: 'rejected' as const } : r
-    );
+    const updated = paymentRequests.map(r => r.id === id ? { ...r, status: 'rejected' as const } : r);
     setPaymentRequests(updated);
     await AsyncStorage.setItem('dave_payment_requests', JSON.stringify(updated));
   };
 
   const activateUserTier = async (userId: string, tier: UserTier) => {
     const updatedUsers = registeredUsers.map(u => {
-      if (u.bookmakerId === userId) {
-        return { ...u, tier, tierExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000 };
-      }
+      if (u.bookmakerId === userId) return { ...u, tier, tierExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000 };
       return u;
     });
     setRegisteredUsers(updatedUsers);
     await AsyncStorage.setItem('dave_registered_users', JSON.stringify(updatedUsers));
-    
-    // Update current user if it's them
     if (user && user.bookmakerId === userId) {
       await saveUser({ ...user, tier, tierExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000 });
     }
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user, isLoading, login, loginAdmin, logout,
-        isAuthenticated: !!user,
-        canAnalyze, useAnalysis, remainingAnalyses,
-        paymentRequests, addPaymentRequest, approvePayment, rejectPayment,
-        activateUserTier, registeredUsers,
-      }}
-    >
+    <AuthContext.Provider value={{
+      user, isLoading, login, loginAdmin, logout,
+      isAuthenticated: !!user,
+      canAnalyze, useAnalysis, remainingAnalyses,
+      paymentRequests, addPaymentRequest, approvePayment, rejectPayment,
+      activateUserTier, registeredUsers,
+    }}>
       {children}
     </AuthContext.Provider>
   );

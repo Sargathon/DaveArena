@@ -7,7 +7,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { useAlert } from '@/template';
 import { theme } from '../../constants/theme';
 import { config } from '../../constants/config';
@@ -28,10 +27,7 @@ export default function MatchDetailScreen() {
   useEffect(() => {
     const match = getMatchById(Number(id));
     if (match) {
-      if (!canAnalyze()) {
-        setLocked(true);
-        return;
-      }
+      if (!canAnalyze()) { setLocked(true); return; }
       useAnalysis();
       setPrediction(generatePrediction(match));
     }
@@ -45,8 +41,7 @@ export default function MatchDetailScreen() {
         <MaterialIcons name="lock" size={56} color={theme.warning} />
         <Text style={styles.lockedTitle}>Limite atteinte</Text>
         <Text style={styles.lockedSub}>
-          Vous avez utilisé vos {config.freeAnalysisPerDay} analyses gratuites aujourd'hui.
-          Passez en VIP pour des analyses illimitées.
+          Vous avez utilise vos {config.freeAnalysisPerDay} analyses gratuites. Passez en VIP pour des analyses illimitees.
         </Text>
         <Pressable style={styles.vipBtn} onPress={() => router.push('/vip')}>
           <MaterialIcons name="star" size={16} color="#FFF" />
@@ -68,10 +63,8 @@ export default function MatchDetailScreen() {
   }
 
   const getRiskColor = (risk: string) => {
-    switch (risk) { case 'Faible': return theme.success; case 'Moyen': return theme.warning; case 'Élevé': return theme.error; default: return theme.textMuted; }
+    switch (risk) { case 'Faible': return theme.success; case 'Moyen': return theme.warning; default: return theme.error; }
   };
-
-  const isFree = user?.tier === 'free' && !user?.isAdmin;
 
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
@@ -79,13 +72,10 @@ export default function MatchDetailScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <MaterialIcons name="arrow-back" size={22} color={theme.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>Prédiction IA</Text>
-        {remainingAnalyses >= 0 && (
-          <View style={styles.remainBadge}>
-            <Text style={styles.remainText}>{remainingAnalyses} restants</Text>
-          </View>
-        )}
-        {remainingAnalyses < 0 && <View style={{ width: 40 }} />}
+        <Text style={styles.headerTitle} numberOfLines={1}>Prediction IA</Text>
+        {remainingAnalyses >= 0 ? (
+          <View style={styles.remainBadge}><Text style={styles.remainText}>{remainingAnalyses} restants</Text></View>
+        ) : <View style={{ width: 40 }} />}
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
@@ -95,14 +85,14 @@ export default function MatchDetailScreen() {
             <Text style={styles.league}>{match.league}</Text>
             <View style={[styles.tierBadge, { backgroundColor: `${prediction.leagueTier === 'high' ? theme.error : prediction.leagueTier === 'medium' ? theme.warning : theme.accent}15` }]}>
               <Text style={[styles.tierText, { color: prediction.leagueTier === 'high' ? theme.error : prediction.leagueTier === 'medium' ? theme.warning : theme.accent }]}>
-                {prediction.leagueTier === 'high' ? '🔥 Fort scoring' : prediction.leagueTier === 'medium' ? '⚡ Scoring moyen' : '📊 Faible scoring'}
+                {prediction.leagueTier === 'high' ? 'Fort scoring' : prediction.leagueTier === 'medium' ? 'Scoring moyen' : 'Faible scoring'}
               </Text>
             </View>
           </View>
           {match.status === 'live' && (
             <View style={styles.liveBadge}>
               <View style={styles.liveDotAnim} />
-              <Text style={styles.liveText}>EN DIRECT · {match.minute}</Text>
+              <Text style={styles.liveText}>EN DIRECT - {match.minute}</Text>
             </View>
           )}
           <View style={styles.teamsRow}>
@@ -120,7 +110,7 @@ export default function MatchDetailScreen() {
               ) : (
                 <Text style={styles.vsText}>VS</Text>
               )}
-              {match.status !== 'live' && <Text style={styles.startTime}>{match.minute || 'À venir'}</Text>}
+              {match.status !== 'live' && <Text style={styles.startTime}>{match.minute || 'A venir'}</Text>}
             </View>
             <View style={styles.teamCol}>
               {match.awayTeamImg ? (
@@ -164,7 +154,7 @@ export default function MatchDetailScreen() {
 
         {/* 1X2 */}
         <Animated.View entering={FadeInDown.delay(160).duration(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Probabilités 1X2</Text>
+          <Text style={styles.sectionTitle}>Probabilites 1X2</Text>
           {[
             { label: match.homeTeam, value: prediction.result1X2.home, color: theme.primary },
             { label: 'Nul', value: prediction.result1X2.draw, color: theme.textMuted },
@@ -172,9 +162,7 @@ export default function MatchDetailScreen() {
           ].map((item, i) => (
             <View key={i} style={styles.probItem}>
               <Text style={styles.probTeam} numberOfLines={1}>{item.label}</Text>
-              <Text style={[styles.probPercent, item.value === Math.max(prediction.result1X2.home, prediction.result1X2.draw, prediction.result1X2.away) && { color: item.color }]}>
-                {item.value}%
-              </Text>
+              <Text style={[styles.probPercent, item.value === Math.max(prediction.result1X2.home, prediction.result1X2.draw, prediction.result1X2.away) && { color: item.color }]}>{item.value}%</Text>
               <View style={styles.probBar}>
                 <View style={[styles.probBarFill, { width: `${item.value}%`, backgroundColor: item.color }]} />
               </View>
@@ -184,24 +172,24 @@ export default function MatchDetailScreen() {
 
         {/* Scores FT */}
         <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>🎯 Scores Probables (Temps réglementaire)</Text>
+          <Text style={styles.sectionTitle}>Scores Probables (Temps reglementaire)</Text>
           <View style={styles.scoresGrid}>
             {prediction.scores.map((s, i) => (
               <View key={i} style={[styles.scoreCard, i === 0 && styles.scoreCardPrimary]}>
                 <Text style={[styles.scoreValue, i === 0 && { color: theme.primary }]}>{s.score}</Text>
                 <Text style={styles.scoreProbability}>{s.probability}%</Text>
-                {i === 0 && <View style={styles.scoreBest}><Text style={styles.scoreBestText}>BEST</Text></View>}
+                {i === 0 ? <View style={styles.scoreBest}><Text style={styles.scoreBestText}>BEST</Text></View> : null}
               </View>
             ))}
           </View>
         </Animated.View>
 
-        {/* Half Time Scores */}
+        {/* Half Time */}
         <Animated.View entering={FadeInDown.delay(240).duration(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>⏱ Scores Mi-Temps</Text>
+          <Text style={styles.sectionTitle}>Scores Mi-Temps</Text>
           <View style={styles.halfGrid}>
             <View style={styles.halfSection}>
-              <Text style={styles.halfLabel}>1ère Mi-Temps</Text>
+              <Text style={styles.halfLabel}>1ERE MI-TEMPS</Text>
               {prediction.halfTimeScores.map((s, i) => (
                 <View key={i} style={styles.halfScoreRow}>
                   <Text style={styles.halfScore}>{s.score}</Text>
@@ -211,7 +199,7 @@ export default function MatchDetailScreen() {
             </View>
             <View style={styles.halfDivider} />
             <View style={styles.halfSection}>
-              <Text style={styles.halfLabel}>2ème Mi-Temps</Text>
+              <Text style={styles.halfLabel}>2EME MI-TEMPS</Text>
               {prediction.secondHalfScores.map((s, i) => (
                 <View key={i} style={styles.halfScoreRow}>
                   <Text style={styles.halfScore}>{s.score}</Text>
@@ -222,9 +210,9 @@ export default function MatchDetailScreen() {
           </View>
         </Animated.View>
 
-        {/* BTTS + Over/Under + Corners + Total Goals */}
+        {/* Markets */}
         <Animated.View entering={FadeInDown.delay(280).duration(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>📈 Marchés Avancés</Text>
+          <Text style={styles.sectionTitle}>Marches Avances</Text>
           <View style={styles.marketsGrid}>
             <View style={styles.marketCard}>
               <Text style={styles.marketTitle}>BTTS</Text>
@@ -257,28 +245,20 @@ export default function MatchDetailScreen() {
             <View style={styles.marketCard}>
               <Text style={styles.marketTitle}>Corners {prediction.corners.line}</Text>
               <View style={styles.marketRow}>
-                <View style={styles.marketItem}>
-                  <Text style={styles.marketLabel}>Over</Text>
-                  <Text style={styles.marketValue}>{prediction.corners.over}%</Text>
-                </View>
-                <View style={styles.marketItem}>
-                  <Text style={styles.marketLabel}>Under</Text>
-                  <Text style={styles.marketValue}>{prediction.corners.under}%</Text>
-                </View>
+                <View style={styles.marketItem}><Text style={styles.marketLabel}>Over</Text><Text style={styles.marketValue}>{prediction.corners.over}%</Text></View>
+                <View style={styles.marketItem}><Text style={styles.marketLabel}>Under</Text><Text style={styles.marketValue}>{prediction.corners.under}%</Text></View>
               </View>
             </View>
             <View style={styles.marketCard}>
               <Text style={styles.marketTitle}>Total Buts</Text>
-              <Text style={[styles.marketValue, { textAlign: 'center', marginTop: 6 }]}>
-                {prediction.totalGoals.prediction} buts
-              </Text>
+              <Text style={[styles.marketValue, { textAlign: 'center', marginTop: 6 }]}>{prediction.totalGoals.prediction} buts</Text>
             </View>
           </View>
         </Animated.View>
 
         {/* AI Analysis */}
         <Animated.View entering={FadeInDown.delay(320).duration(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>🧠 Analyse Multi-IA</Text>
+          <Text style={styles.sectionTitle}>Analyse Multi-IA</Text>
           {prediction.aiAnalysis.map((ai, i) => {
             const agentConfig = config.aiAgents.find(a => a.name === ai.agent);
             return (
@@ -289,22 +269,18 @@ export default function MatchDetailScreen() {
                   <Text style={styles.aiPred}>{ai.prediction}</Text>
                 </View>
                 <View style={styles.aiConf}>
-                  <Text style={[styles.aiConfText, { color: ai.confidence > 60 ? theme.success : theme.warning }]}>
-                    {ai.confidence}%
-                  </Text>
+                  <Text style={[styles.aiConfText, { color: ai.confidence > 60 ? theme.success : theme.warning }]}>{ai.confidence}%</Text>
                 </View>
               </View>
             );
           })}
         </Animated.View>
 
-        {/* Modèles utilisés */}
+        {/* Models */}
         <Animated.View entering={FadeInDown.delay(360).duration(500)} style={styles.section}>
           <View style={styles.modelsBox}>
             <MaterialIcons name="science" size={16} color={theme.textMuted} />
-            <Text style={styles.modelsText}>
-              Modèles: Poisson · Monte Carlo (3000 sim.) · Régression · XGBoost · Distribution Bayésienne
-            </Text>
+            <Text style={styles.modelsText}>Modeles: Poisson - Monte Carlo (5000 sim.) - Regression - XGBoost - Bayesien</Text>
           </View>
         </Animated.View>
       </ScrollView>

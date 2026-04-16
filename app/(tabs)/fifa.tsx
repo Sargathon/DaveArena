@@ -13,12 +13,13 @@ import { useMatches } from '../../contexts/MatchContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Combo } from '../../services/api';
 
-const TABS = ['FIFA', 'Combiné', 'Historique'] as const;
+const TABS = ['FIFA', 'Combines', 'Historique'] as const;
 
 const LEAGUE_FLAGS: Record<string, string> = {
-  'bundesliga': '🇩🇪', 'la liga': '🇪🇸', 'serie a': '🇮🇹', 'euro': '🇪🇺',
-  'champions': '🏆', 'world': '🌍', 'premier': '🏴\u200D☠️', 'ligue 1': '🇫🇷',
-  '3x3': '⚡', '4x4': '🔥', '5x5': '🎮', 'conference': '🏟️',
+  'bundesliga': '\uD83C\uDDE9\uD83C\uDDEA', 'la liga': '\uD83C\uDDEA\uD83C\uDDF8', 'serie a': '\uD83C\uDDEE\uD83C\uDDF9',
+  'euro': '\uD83C\uDDEA\uD83C\uDDFA', 'champions': '\uD83C\uDFC6', 'world': '\uD83C\uDF0D',
+  'premier': '\uD83C\uDFF4', 'ligue 1': '\uD83C\uDDEB\uD83C\uDDF7',
+  '3x3': '\u26A1', '4x4': '\uD83D\uDD25', '5x5': '\uD83C\uDFAE', 'conference': '\uD83C\uDFDF\uFE0F',
 };
 
 function getLeagueFlag(name: string): string {
@@ -26,48 +27,64 @@ function getLeagueFlag(name: string): string {
   for (const [key, flag] of Object.entries(LEAGUE_FLAGS)) {
     if (lower.includes(key)) return flag;
   }
-  return '⚽';
+  return '\u26BD';
 }
 
-const COMBO_LABELS: Record<string, { label: string; color: string; icon: string }> = {
-  cote2: { label: 'Cote 2 · Sûr', color: '#10B981', icon: 'verified' },
-  cote5: { label: 'Cote 5 · Moyen', color: '#F59E0B', icon: 'trending-up' },
-  score_exact: { label: 'Score Exact MT', color: '#8B5CF6', icon: 'sports-score' },
-  grosse_cote: { label: 'Grosse Cote', color: '#EF4444', icon: 'local-fire-department' },
+const COMBO_META: Record<string, { label: string; color: string; icon: string }> = {
+  cote2: { label: 'Cote 2 \u00B7 Sur', color: '#10B981', icon: 'verified' },
+  cote5: { label: 'Cote 5 \u00B7 Moyen', color: '#F59E0B', icon: 'trending-up' },
+  cote10: { label: 'Cote 10++ \u00B7 Risque', color: '#EF4444', icon: 'local-fire-department' },
+  score_exact_mt: { label: 'Score Exact MT', color: '#8B5CF6', icon: 'sports-score' },
+  score_exact_ft: { label: 'Score Exact Tps Reg.', color: '#EC4899', icon: 'sports-score' },
 };
 
 function ComboCard({ combo, isVip, onPress }: { combo: Combo; isVip: boolean; onPress: () => void }) {
-  const meta = COMBO_LABELS[combo.type] || COMBO_LABELS.cote2;
+  const meta = COMBO_META[combo.type] || COMBO_META.cote2;
+  const locked = !isVip && combo.type !== 'cote2';
   return (
-    <Pressable style={styles.comboCard} onPress={onPress}>
+    <Pressable style={[styles.comboCard, combo.category === 'live' && styles.comboCardLive]} onPress={onPress}>
       <View style={styles.comboHeader}>
-        <View style={[styles.comboTypeBadge, { backgroundColor: `${meta.color}15` }]}>
-          <MaterialIcons name={meta.icon as any} size={14} color={meta.color} />
-          <Text style={[styles.comboTypeText, { color: meta.color }]}>{meta.label}</Text>
+        <View style={{ flex: 1, gap: 4 }}>
+          <View style={[styles.comboTypeBadge, { backgroundColor: `${meta.color}15` }]}>
+            <MaterialIcons name={meta.icon as any} size={14} color={meta.color} />
+            <Text style={[styles.comboTypeText, { color: meta.color }]}>{combo.label || meta.label}</Text>
+          </View>
+          {combo.category === 'live' && (
+            <View style={styles.comboLiveBadge}>
+              <View style={styles.comboLiveDot} />
+              <Text style={styles.comboLiveText}>LIVE</Text>
+            </View>
+          )}
         </View>
         <View style={styles.comboOddsBox}>
-          <Text style={styles.comboOddsLabel}>Cote</Text>
+          <Text style={styles.comboOddsLabel}>Cote totale</Text>
           <Text style={styles.comboOddsValue}>{combo.totalOdds.toFixed(2)}</Text>
         </View>
       </View>
+
       {combo.events.map((ev, i) => (
         <View key={i} style={styles.comboEvent}>
-          <View style={styles.comboEventDot} />
+          <View style={[styles.comboEventDot, { backgroundColor: meta.color }]} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.comboMatchName} numberOfLines={1}>
-              {ev.match.homeTeam} vs {ev.match.awayTeam}
-            </Text>
+            <Text style={styles.comboMatchName} numberOfLines={1}>{ev.match.homeTeam} vs {ev.match.awayTeam}</Text>
+            <Text style={styles.comboLeague} numberOfLines={1}>{ev.match.league}</Text>
             <Text style={styles.comboMarket}>{ev.market}: <Text style={{ color: theme.primary, fontWeight: '700' }}>{ev.selection}</Text></Text>
           </View>
-          <Text style={styles.comboEventOdd}>{ev.odds.toFixed(2)}</Text>
+          <View style={styles.comboEventOddBox}>
+            <Text style={styles.comboEventOdd}>{ev.odds.toFixed(2)}</Text>
+          </View>
         </View>
       ))}
+
       <View style={styles.comboFooter}>
         <View style={styles.confidencePill}>
           <MaterialIcons name="verified" size={12} color={theme.accent} />
           <Text style={styles.confidenceText}>{combo.confidence}%</Text>
         </View>
-        {!isVip && combo.type !== 'cote2' && (
+        <View style={[styles.comboEvCount, { backgroundColor: `${meta.color}10` }]}>
+          <Text style={[styles.comboEvCountText, { color: meta.color }]}>{combo.events.length} events</Text>
+        </View>
+        {locked && (
           <View style={styles.vipLock}>
             <MaterialIcons name="lock" size={12} color={theme.warning} />
             <Text style={styles.vipLockText}>VIP</Text>
@@ -85,11 +102,12 @@ export default function FifaScreen() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>('FIFA');
   const [expandedLeagues, setExpandedLeagues] = useState<Set<number>>(new Set());
-  const isVip = user?.isAdmin || (user?.tier && user.tier !== 'free') || false;
+  const [comboFilter, setComboFilter] = useState<string>('all');
+  const isVip = user?.isAdmin || (user?.tier !== undefined && user.tier !== 'free') || false;
 
   const toggleLeague = (id: number) => {
     Haptics.selectionAsync();
-    setExpandedLeagues((prev) => {
+    setExpandedLeagues(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
@@ -100,6 +118,20 @@ export default function FifaScreen() {
     if (!date) return '--:--';
     return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   };
+
+  const filteredCombos = comboFilter === 'all' ? combos :
+    comboFilter === 'live' ? combos.filter(c => c.category === 'live') :
+    combos.filter(c => c.type === comboFilter);
+
+  const comboFilters = [
+    { id: 'all', label: 'Tous' },
+    { id: 'live', label: 'Live' },
+    { id: 'cote2', label: 'Cote 2' },
+    { id: 'cote5', label: 'Cote 5' },
+    { id: 'cote10', label: 'Cote 10+' },
+    { id: 'score_exact_mt', label: 'Score MT' },
+    { id: 'score_exact_ft', label: 'Score FT' },
+  ];
 
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
@@ -123,16 +155,10 @@ export default function FifaScreen() {
 
       <View style={styles.tabRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
-          {TABS.map((tab) => (
-            <Pressable
-              key={tab}
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
-              onPress={() => { Haptics.selectionAsync(); setActiveTab(tab); }}
-            >
-              {tab === 'FIFA' && <MaterialIcons name="sports-esports" size={14} color={activeTab === tab ? '#FFF' : theme.textMuted} />}
-              {tab === 'Combiné' && <MaterialIcons name="layers" size={14} color={activeTab === tab ? '#FFF' : theme.textMuted} />}
-              {tab === 'Historique' && <MaterialIcons name="history" size={14} color={activeTab === tab ? '#FFF' : theme.textMuted} />}
-              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+          {TABS.map(t => (
+            <Pressable key={t} style={[styles.tab, activeTab === t && styles.tabActive]}
+              onPress={() => { Haptics.selectionAsync(); setActiveTab(t); }}>
+              <Text style={[styles.tabText, activeTab === t && styles.tabTextActive]}>{t}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -151,15 +177,13 @@ export default function FifaScreen() {
           </View>
         )}
 
-        {/* ─── FIFA TAB ─── */}
+        {/* FIFA TAB */}
         {activeTab === 'FIFA' && leagues.map((league, idx) => (
           <Animated.View key={league.id} entering={FadeInDown.delay(idx * 60).duration(400)}>
             <Pressable style={styles.leagueCard} onPress={() => toggleLeague(league.id)}>
               <Text style={styles.leagueFlag}>{getLeagueFlag(league.name)}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={styles.leagueName} numberOfLines={1}>
-                  FIFA {league.name.replace(/FC 26\. /i, '').replace(/Superleague/i, 'League')}
-                </Text>
+                <Text style={styles.leagueName} numberOfLines={1}>FIFA {league.name.replace(/FC 26\. /i, '').replace(/Superleague/i, 'League')}</Text>
               </View>
               {league.liveCount > 0 && (
                 <View style={styles.leagueLive}>
@@ -173,11 +197,9 @@ export default function FifaScreen() {
 
             {expandedLeagues.has(league.id) && (
               <Animated.View entering={FadeIn.duration(300)} style={styles.matchList}>
-                {league.matches.map((match) => (
-                  <Pressable
-                    key={match.id} style={styles.matchRow}
-                    onPress={() => { Haptics.selectionAsync(); router.push(`/match/${match.id}`); }}
-                  >
+                {league.matches.map(match => (
+                  <Pressable key={match.id} style={styles.matchRow}
+                    onPress={() => { Haptics.selectionAsync(); router.push(`/match/${match.id}`); }}>
                     <View style={styles.matchTeams}>
                       <View style={styles.matchTeamRow}>
                         {match.homeTeamImg ? (
@@ -206,7 +228,7 @@ export default function FifaScreen() {
                       ) : (
                         <View style={styles.matchTimeBox}>
                           <MaterialIcons name="schedule" size={12} color={theme.textMuted} />
-                          <Text style={styles.matchTime}>{match.minute || 'À venir'}</Text>
+                          <Text style={styles.matchTime}>{match.minute || 'A venir'}</Text>
                         </View>
                       )}
                       {match.status === 'live' && <Text style={styles.matchMinute}>{match.minute}</Text>}
@@ -223,55 +245,62 @@ export default function FifaScreen() {
           </Animated.View>
         ))}
 
-        {/* ─── COMBINÉ TAB ─── */}
-        {activeTab === 'Combiné' && (
+        {/* COMBINES TAB */}
+        {activeTab === 'Combines' && (
           <>
-            <Animated.View entering={FadeInDown.duration(400)} style={styles.comboInfo}>
-              <MaterialIcons name="auto-awesome" size={18} color={theme.primary} />
-              <Text style={styles.comboInfoText}>
-                Combinés générés automatiquement par les modèles Poisson & Monte Carlo en temps réel
-              </Text>
-            </Animated.View>
+            {/* Combo Filters */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginBottom: 12 }}>
+              {comboFilters.map(f => (
+                <Pressable key={f.id}
+                  style={[styles.filterPill, comboFilter === f.id && styles.filterPillActive]}
+                  onPress={() => { Haptics.selectionAsync(); setComboFilter(f.id); }}>
+                  <Text style={[styles.filterPillText, comboFilter === f.id && styles.filterPillTextActive]}>{f.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
 
-            {combos.length === 0 && (
+            <View style={styles.comboInfo}>
+              <MaterialIcons name="auto-awesome" size={16} color={theme.primary} />
+              <Text style={styles.comboInfoText}>
+                Combines generes par Poisson, Monte Carlo (5000 sim.) et XGBoost en temps reel. Les scores exacts sont sur des ligues fiables uniquement.
+              </Text>
+            </View>
+
+            {filteredCombos.length === 0 && (
               <View style={styles.emptyTab}>
                 <MaterialIcons name="layers" size={48} color={theme.textMuted} />
-                <Text style={styles.emptyTabTitle}>Aucun combiné disponible</Text>
-                <Text style={styles.emptyTabSub}>Les combinés sont générés quand des matchs sont disponibles</Text>
+                <Text style={styles.emptyTabTitle}>Aucun combine disponible</Text>
+                <Text style={styles.emptyTabSub}>
+                  {comboFilter !== 'all' ? 'Changez le filtre ou attendez de nouveaux matchs' : 'Les combines sont generes avec les matchs disponibles'}
+                </Text>
               </View>
             )}
 
-            {combos.map((combo, i) => (
-              <Animated.View key={combo.id} entering={FadeInDown.delay(i * 80).duration(400)}>
-                <ComboCard
-                  combo={combo}
-                  isVip={isVip}
-                  onPress={() => {
-                    if (!isVip && combo.type !== 'cote2') {
-                      router.push('/vip');
-                    }
-                  }}
-                />
+            {filteredCombos.map((combo, i) => (
+              <Animated.View key={combo.id} entering={FadeInDown.delay(i * 60).duration(400)}>
+                <ComboCard combo={combo} isVip={isVip} onPress={() => {
+                  if (!isVip && combo.type !== 'cote2') router.push('/vip');
+                }} />
               </Animated.View>
             ))}
 
             {!isVip && (
               <Pressable style={styles.unlockBtn} onPress={() => router.push('/vip')}>
                 <MaterialIcons name="lock-open" size={16} color="#FFF" />
-                <Text style={styles.unlockBtnText}>Débloquer tous les combinés</Text>
+                <Text style={styles.unlockBtnText}>Debloquer tous les combines</Text>
               </Pressable>
             )}
           </>
         )}
 
-        {/* ─── HISTORIQUE TAB ─── */}
+        {/* HISTORIQUE TAB */}
         {activeTab === 'Historique' && (
           <>
             {comboHistory.length === 0 && (
               <View style={styles.emptyTab}>
                 <MaterialIcons name="history" size={48} color={theme.textMuted} />
                 <Text style={styles.emptyTabTitle}>Aucun historique</Text>
-                <Text style={styles.emptyTabSub}>Les combinés passés apparaîtront ici</Text>
+                <Text style={styles.emptyTabSub}>Les combines passes apparaitront ici</Text>
               </View>
             )}
             {comboHistory.map((combo, i) => (
@@ -281,18 +310,26 @@ export default function FifaScreen() {
                     <Text style={styles.historyDate}>
                       {new Date(combo.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </Text>
-                    <View style={[styles.comboTypeBadge, { backgroundColor: `${(COMBO_LABELS[combo.type]?.color || '#999')}15` }]}>
-                      <Text style={[styles.comboTypeText, { color: COMBO_LABELS[combo.type]?.color || '#999' }]}>
-                        {COMBO_LABELS[combo.type]?.label || combo.type}
+                    <View style={[styles.comboTypeBadge, { backgroundColor: `${(COMBO_META[combo.type]?.color || '#999')}15` }]}>
+                      <Text style={[styles.comboTypeText, { color: COMBO_META[combo.type]?.color || '#999' }]}>
+                        {COMBO_META[combo.type]?.label || combo.type}
                       </Text>
                     </View>
+                    {combo.category === 'live' && (
+                      <View style={styles.comboLiveBadge}>
+                        <Text style={styles.comboLiveText}>LIVE</Text>
+                      </View>
+                    )}
                     <Text style={styles.historyOdds}>Cote {combo.totalOdds.toFixed(2)}</Text>
                   </View>
                   {combo.events.map((ev, j) => (
                     <Text key={j} style={styles.historyEvent}>
-                      {ev.match.homeTeam} vs {ev.match.awayTeam} · {ev.selection}
+                      {ev.match.homeTeam} vs {ev.match.awayTeam} - {ev.market}: {ev.selection} ({ev.odds.toFixed(2)})
                     </Text>
                   ))}
+                  <View style={styles.historyFooter}>
+                    <Text style={styles.historyConf}>Confiance: {combo.confidence}%</Text>
+                  </View>
                 </View>
               </Animated.View>
             ))}
@@ -314,12 +351,13 @@ const styles = StyleSheet.create({
   liveCountText: { fontSize: 11, color: theme.live, fontWeight: '700' },
   updateText: { fontSize: 11, color: theme.textMuted },
   tabRow: { marginBottom: 4 },
-  tab: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: theme.surface, borderRadius: theme.radius.full, borderWidth: 1, borderColor: theme.border },
+  tab: { paddingHorizontal: 20, paddingVertical: 8, backgroundColor: theme.surface, borderRadius: theme.radius.full, borderWidth: 1, borderColor: theme.border },
   tabActive: { backgroundColor: theme.accent, borderColor: theme.accent },
   tabText: { fontSize: 13, color: theme.textMuted, fontWeight: '600' },
   tabTextActive: { color: '#FFFFFF' },
   loadingState: { alignItems: 'center', paddingTop: 60 },
   loadingText: { color: theme.textMuted, marginTop: 12, fontSize: 14 },
+  // Leagues
   leagueCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: theme.radius.md, padding: 14, marginBottom: 8, gap: 10, borderWidth: 1, borderColor: theme.border },
   leagueFlag: { fontSize: 24 },
   leagueName: { fontSize: 15, fontWeight: '700', color: theme.textPrimary },
@@ -343,25 +381,38 @@ const styles = StyleSheet.create({
   matchMinute: { fontSize: 10, color: theme.live, fontWeight: '700', marginTop: 2 },
   matchOdds: { flex: 0.8, flexDirection: 'row', justifyContent: 'space-around' },
   oddValue: { fontSize: 11, color: theme.primary, fontWeight: '700' },
-  // Combo styles
+  // Combo filter
+  filterPill: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: theme.surface, borderRadius: theme.radius.full, borderWidth: 1, borderColor: theme.border },
+  filterPillActive: { backgroundColor: theme.primary, borderColor: theme.primary },
+  filterPillText: { fontSize: 12, color: theme.textMuted, fontWeight: '600' },
+  filterPillTextActive: { color: '#FFF' },
+  // Combo cards
   comboInfo: { flexDirection: 'row', gap: 8, backgroundColor: 'rgba(249,115,22,0.08)', borderRadius: theme.radius.md, padding: 12, marginBottom: 14, alignItems: 'center' },
-  comboInfoText: { fontSize: 12, color: theme.textSecondary, flex: 1 },
+  comboInfoText: { fontSize: 12, color: theme.textSecondary, flex: 1, lineHeight: 18 },
   comboCard: { backgroundColor: theme.surface, borderRadius: theme.radius.lg, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: theme.border },
-  comboHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  comboTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  comboCardLive: { borderColor: 'rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.03)' },
+  comboHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
+  comboTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
   comboTypeText: { fontSize: 12, fontWeight: '700' },
+  comboLiveBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.12)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, alignSelf: 'flex-start' },
+  comboLiveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: theme.live },
+  comboLiveText: { fontSize: 10, color: theme.live, fontWeight: '700' },
   comboOddsBox: { alignItems: 'flex-end' },
   comboOddsLabel: { fontSize: 10, color: theme.textMuted },
-  comboOddsValue: { fontSize: 20, fontWeight: '900', color: theme.primary },
-  comboEvent: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderTopWidth: 1, borderTopColor: theme.border },
-  comboEventDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.accent },
-  comboMatchName: { fontSize: 12, color: theme.textPrimary, fontWeight: '600' },
-  comboMarket: { fontSize: 11, color: theme.textSecondary },
-  comboEventOdd: { fontSize: 13, fontWeight: '800', color: theme.primary },
-  comboFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  comboOddsValue: { fontSize: 22, fontWeight: '900', color: theme.primary },
+  comboEvent: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderTopWidth: 1, borderTopColor: theme.border },
+  comboEventDot: { width: 6, height: 6, borderRadius: 3 },
+  comboMatchName: { fontSize: 13, color: theme.textPrimary, fontWeight: '600' },
+  comboLeague: { fontSize: 10, color: theme.textMuted, marginTop: 1 },
+  comboMarket: { fontSize: 12, color: theme.textSecondary, marginTop: 2 },
+  comboEventOddBox: { backgroundColor: theme.surfaceLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  comboEventOdd: { fontSize: 14, fontWeight: '800', color: theme.primary },
+  comboFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.border },
   confidencePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(59,130,246,0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   confidenceText: { fontSize: 12, color: theme.accent, fontWeight: '700' },
-  vipLock: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(245,158,11,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  comboEvCount: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  comboEvCountText: { fontSize: 11, fontWeight: '600' },
+  vipLock: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(245,158,11,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 'auto' },
   vipLockText: { fontSize: 11, color: theme.warning, fontWeight: '700' },
   unlockBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: theme.primary, borderRadius: theme.radius.md, paddingVertical: 14, marginTop: 8 },
   unlockBtnText: { fontSize: 14, fontWeight: '700', color: '#FFF' },
@@ -370,8 +421,10 @@ const styles = StyleSheet.create({
   emptyTabSub: { fontSize: 13, color: theme.textMuted, textAlign: 'center', marginTop: 6 },
   // History
   historyCard: { backgroundColor: theme.surface, borderRadius: theme.radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: theme.border },
-  historyHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  historyHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' },
   historyDate: { fontSize: 12, color: theme.textMuted, fontWeight: '600' },
   historyOdds: { fontSize: 13, fontWeight: '800', color: theme.primary, marginLeft: 'auto' },
-  historyEvent: { fontSize: 12, color: theme.textSecondary, paddingVertical: 2 },
+  historyEvent: { fontSize: 12, color: theme.textSecondary, paddingVertical: 2, lineHeight: 18 },
+  historyFooter: { marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: theme.border },
+  historyConf: { fontSize: 11, color: theme.accent, fontWeight: '600' },
 });

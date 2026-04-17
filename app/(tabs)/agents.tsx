@@ -18,7 +18,7 @@ export default function AgentsScreen() {
     <SafeAreaView edges={['top']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Agents IA</Text>
-        <Text style={styles.subtitle}>Système multi-agents de prédiction</Text>
+        <Text style={styles.subtitle}>Systeme multi-agents de prediction</Text>
       </View>
       <ScrollView
         style={{ flex: 1 }}
@@ -32,7 +32,7 @@ export default function AgentsScreen() {
             <Text style={styles.statusText}>Tous les agents sont actifs</Text>
           </View>
           <Text style={styles.statusSub}>
-            6 modèles IA analysent les cotes en temps réel pour générer des prédictions optimales
+            6 modeles IA analysent les cotes en temps reel pour generer des predictions optimales
           </Text>
         </Animated.View>
 
@@ -59,33 +59,35 @@ export default function AgentsScreen() {
 
         {/* How it works */}
         <Animated.View entering={FadeInDown.delay(600).duration(500)} style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Comment ça marche ?</Text>
+          <Text style={styles.infoTitle}>Comment ca marche ?</Text>
           <View style={styles.infoStep}>
             <View style={styles.stepNum}><Text style={styles.stepNumText}>1</Text></View>
             <View style={styles.stepContent}>
               <Text style={styles.stepTitle}>Collecte des cotes</Text>
-              <Text style={styles.stepDesc}>Les cotes bookmaker sont récupérées en temps réel</Text>
+
+              <Text style={styles.stepDesc}>Les cotes bookmaker sont recuperees en temps reel</Text>
             </View>
           </View>
           <View style={styles.infoStep}>
             <View style={styles.stepNum}><Text style={styles.stepNumText}>2</Text></View>
             <View style={styles.stepContent}>
               <Text style={styles.stepTitle}>Analyse multi-IA</Text>
-              <Text style={styles.stepDesc}>Chaque agent analyse selon sa spécialité</Text>
+
+              <Text style={styles.stepDesc}>Chaque agent analyse selon sa specialite</Text>
             </View>
           </View>
           <View style={styles.infoStep}>
             <View style={styles.stepNum}><Text style={styles.stepNumText}>3</Text></View>
             <View style={styles.stepContent}>
               <Text style={styles.stepTitle}>Fusion intelligente</Text>
-              <Text style={styles.stepDesc}>Les résultats sont combinés pour une prédiction finale</Text>
+              <Text style={styles.stepDesc}>Les resultats sont combines pour une prediction finale</Text>
             </View>
           </View>
           <View style={styles.infoStep}>
             <View style={styles.stepNum}><Text style={styles.stepNumText}>4</Text></View>
             <View style={styles.stepContent}>
               <Text style={styles.stepTitle}>Score de confiance</Text>
-              <Text style={styles.stepDesc}>Chaque prédiction reçoit un indice de fiabilité</Text>
+              <Text style={styles.stepDesc}>Chaque prediction recoit un indice de fiabilite</Text>
             </View>
           </View>
         </Animated.View>

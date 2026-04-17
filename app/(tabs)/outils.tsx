@@ -10,14 +10,16 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { theme } from '../../constants/theme';
 import { config } from '../../constants/config';
 
+let Haptics: any = null;
+try { Haptics = require('expo-haptics'); } catch (e) { /* */ }
+
 const tools = [
-  { id: 'converter', icon: 'calculate', title: 'Convertisseur de cotes', desc: 'Décimales, fractionnaires, américaines', color: theme.accent },
+  { id: 'converter', icon: 'calculate', title: 'Convertisseur de cotes', desc: 'Decimales, fractionnaires, americaines', color: theme.accent },
   { id: 'calculator', icon: 'functions', title: 'Calculateur de gains', desc: 'Simulez vos gains potentiels', color: theme.success },
-  { id: 'value', icon: 'trending-up', title: 'Détecteur Value Bet', desc: 'Identifiez les cotes surévaluées', color: theme.primary },
+  { id: 'value', icon: 'trending-up', title: 'Detecteur Value Bet', desc: 'Identifiez les cotes surevaluees', color: theme.primary },
   { id: 'bankroll', icon: 'account-balance-wallet', title: 'Gestion Bankroll', desc: 'Suivez votre capital', color: '#8B5CF6' },
 ];
 
@@ -41,7 +43,7 @@ export default function OutilsScreen() {
             <Pressable
               style={styles.toolCard}
               onPress={() => {
-                Haptics.selectionAsync();
+                try { Haptics?.selectionAsync(); } catch (e) { /* */ }
               }}
             >
               <View style={[styles.toolIcon, { backgroundColor: `${tool.color}20` }]}>
@@ -56,15 +58,14 @@ export default function OutilsScreen() {
           </Animated.View>
         ))}
 
-        {/* Bookmaker Links */}
         <Text style={styles.sectionTitle}>Inscriptions Bookmakers</Text>
         {Object.entries(config.bookmakers).map(([key, bm], index) => (
           <Animated.View key={key} entering={FadeInDown.delay(400 + index * 80).duration(400)}>
             <Pressable
               style={styles.bmCard}
               onPress={() => {
-                Haptics.selectionAsync();
-                Linking.openURL(bm.url);
+                try { Haptics?.selectionAsync(); } catch (e) { /* */ }
+                try { Linking.openURL(bm.url); } catch (e) { /* */ }
               }}
             >
               <View style={[styles.bmIcon, { backgroundColor: `${theme.primary}20` }]}>
@@ -72,7 +73,7 @@ export default function OutilsScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.bmName}>{bm.name}</Text>
-                <Text style={styles.bmUrl}>Inscription rapide →</Text>
+                <Text style={styles.bmUrl}>{`Inscription rapide \u2192`}</Text>
               </View>
               <View style={styles.bmBadge}>
                 <Text style={styles.bmBadgeText}>Bonus</Text>
@@ -81,20 +82,19 @@ export default function OutilsScreen() {
           </Animated.View>
         ))}
 
-        {/* Social */}
         <Text style={styles.sectionTitle}>Liens Utiles</Text>
         <Animated.View entering={FadeInDown.delay(700).duration(400)}>
-          <Pressable style={styles.socialRow} onPress={() => Linking.openURL(config.youtube)}>
+          <Pressable style={styles.socialRow} onPress={() => { try { Linking.openURL(config.youtube); } catch (e) { /* */ } }}>
             <MaterialIcons name="play-circle-filled" size={28} color="#FF0000" />
             <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={styles.socialName}>Chaîne YouTube</Text>
+              <Text style={styles.socialName}>Chaine YouTube</Text>
               <Text style={styles.socialHandle}>@smoothydsj</Text>
             </View>
             <MaterialIcons name="chevron-right" size={20} color={theme.textMuted} />
           </Pressable>
         </Animated.View>
         <Animated.View entering={FadeInDown.delay(750).duration(400)}>
-          <Pressable style={styles.socialRow} onPress={() => Linking.openURL(config.telegram)}>
+          <Pressable style={styles.socialRow} onPress={() => { try { Linking.openURL(config.telegram); } catch (e) { /* */ } }}>
             <MaterialIcons name="send" size={24} color="#0088CC" />
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.socialName}>Canal Telegram</Text>

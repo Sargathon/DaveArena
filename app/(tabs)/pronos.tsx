@@ -7,7 +7,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+let Haptics: any = null;
+try { Haptics = require('expo-haptics'); } catch (e) { /* */ }
 import { theme } from '../../constants/theme';
 import { useMatches } from '../../contexts/MatchContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,7 +27,10 @@ export default function PronosScreen() {
   }, [allMatches]);
 
   const getRiskColor = (risk: string) => {
-    switch (risk) { case 'Faible': return theme.success; case 'Moyen': return theme.warning; case 'Élevé': return theme.error; default: return theme.textMuted; }
+    if (risk === 'Faible') return theme.success;
+    if (risk === 'Moyen') return theme.warning;
+    if (risk === 'Eleve') return theme.error;
+    return theme.textMuted;
   };
 
   const isFree = user?.tier === 'free' && !user?.isAdmin;
@@ -71,7 +75,7 @@ export default function PronosScreen() {
           <Animated.View key={pred.match.id} entering={FadeInDown.delay(index * 60).duration(400)}>
             <Pressable
               style={styles.predCard}
-              onPress={() => { Haptics.selectionAsync(); router.push(`/match/${pred.match.id}`); }}
+              onPress={() => { try { Haptics?.selectionAsync(); } catch (e) { /* */ } router.push(`/match/${pred.match.id}`); }}
             >
               <View style={styles.cardHeader}>
                 <Text style={styles.leagueName} numberOfLines={1}>{pred.match.league}</Text>

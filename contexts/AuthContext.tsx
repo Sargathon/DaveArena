@@ -64,22 +64,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadData = async () => {
     try {
-      const stored = await AsyncStorage.getItem('dave_user');
+      const [stored, reqs, users] = await Promise.all([
+        AsyncStorage.getItem('dave_user'),
+        AsyncStorage.getItem('dave_payment_requests'),
+        AsyncStorage.getItem('dave_registered_users'),
+      ]);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        const today = new Date().toDateString();
-        if (parsed.lastAnalysisDate !== today) {
-          parsed.analysesUsedToday = 0;
-          parsed.lastAnalysisDate = today;
-        }
-        setUser(parsed);
+        try {
+          const parsed = JSON.parse(stored);
+          const today = new Date().toDateString();
+          if (parsed.lastAnalysisDate !== today) {
+            parsed.analysesUsedToday = 0;
+            parsed.lastAnalysisDate = today;
+          }
+          setUser(parsed);
+        } catch (e) { /* invalid stored data */ }
       }
-      const reqs = await AsyncStorage.getItem('dave_payment_requests');
-      if (reqs) setPaymentRequests(JSON.parse(reqs));
-      const users = await AsyncStorage.getItem('dave_registered_users');
-      if (users) setRegisteredUsers(JSON.parse(users));
+      if (reqs) { try { setPaymentRequests(JSON.parse(reqs)); } catch (e) { /* */ } }
+      if (users) { try { setRegisteredUsers(JSON.parse(users)); } catch (e) { /* */ } }
     } catch (_e) {
-      console.log('Error loading data');
+      // Storage error
     } finally {
       setIsLoading(false);
     }
@@ -87,24 +91,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const saveUser = async (u: User) => {
     setUser(u);
-    await AsyncStorage.setItem('dave_user', JSON.stringify(u));
+    try { await AsyncStorage.setItem('dave_user', JSON.stringify(u)); } catch (e) { /* */ }
   };
 
   const login = async (bookmakerId: string, bookmaker: string): Promise<boolean> => {
-    if (bookmakerId.length < 9 || bookmakerId.length > 10) return false;
-    const today = new Date().toDateString();
-    const newUser: User = {
-      bookmakerId, bookmaker, isAdmin: false,
-      tier: 'free', analysesUsedToday: 0, lastAnalysisDate: today,
-    };
-    const existing = registeredUsers.find(u => u.bookmakerId === bookmakerId);
-    if (existing) { newUser.tier = existing.tier; newUser.tierExpiry = existing.tierExpiry; }
-    await saveUser(newUser);
-    const updated = registeredUsers.filter(u => u.bookmakerId !== bookmakerId);
-    updated.push(newUser);
-    setRegisteredUsers(updated);
-    await AsyncStorage.setItem('dave_registered_users', JSON.stringify(updated));
-    return true;
+    try {
+      if (bookmakerId.length < 9 || bookmakerId.length > 10) return false;
+      const today = new Date().toDateString();
+      const newUser: User = {
+        bookmakerId, bookmaker, isAdmin: false,
+        tier: 'free', analysesUsedToday: 0, lastAnalysisDate: today,
+      };
+      const existing = registeredUsers.find(u => u.bookmakerId === bookmakerId);
+      if (existing) { newUser.tier = existing.tier; newUser.tierExpiry = existing.tierExpiry; }
+      await saveUser(newUser);
+      const updated = registeredUsers.filter(u => u.bookmakerId !== bookmakerId);
+      updated.push(newUser);
+      setRegisteredUsers(updated);
+      try { await AsyncStorage.setItem('dave_registered_users', JSON.stringify(updated)); } catch (e) { /* */ }
+      return true;
+    } catch (e) {
+      return false;
+    }
   };
 
   const loginAdmin = (code: string): boolean => {
@@ -120,7 +128,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false;
   };
 
-  const logout = () => { setUser(null); AsyncStorage.removeItem('dave_user'); };
+  const logout = () => {
+    setUser(null);
+    try { AsyncStorage.removeItem('dave_user'); } catch (e) { /* */ }
+  };
 
   const canAnalyze = useCallback((): boolean => {
     if (!user) return false;
@@ -150,46 +161,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addPaymentRequest = async (req: Omit<PaymentRequest, 'id' | 'status' | 'createdAt'>) => {
-    const newReq: PaymentRequest = {
-      ...req,
-      id: `pay_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      status: 'pending',
-      createdAt: Date.now(),
-    };
-    const updated = [newReq, ...paymentRequests];
-    setPaymentRequests(updated);
-    await AsyncStorage.setItem('dave_payment_requests', JSON.stringify(updated));
+    try {
+      const newReq: PaymentRequest = {
+        ...req,
+        id: `pay_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        status: 'pending',
+        createdAt: Date.now(),
+      };
+      const updated = [newReq, ...paymentRequests];
+      setPaymentRequests(updated);
+      await AsyncStorage.setItem('dave_payment_requests', JSON.stringify(updated));
+    } catch (e) { /* */ }
   };
 
   const approvePayment = async (id: string) => {
-    const updated = paymentRequests.map(r => {
-      if (r.id === id) {
-        const plan = config.pricing.find(p => p.name === r.plan);
-        if (plan) { activateUserTier(r.userId, plan.id as UserTier); }
-        return { ...r, status: 'approved' as const };
-      }
-      return r;
-    });
-    setPaymentRequests(updated);
-    await AsyncStorage.setItem('dave_payment_requests', JSON.stringify(updated));
+    try {
+      const updated = paymentRequests.map(r => {
+        if (r.id === id) {
+          const plan = config.pricing.find(p => p.name === r.plan);
+          if (plan) { activateUserTier(r.userId, plan.id as UserTier); }
+          return { ...r, status: 'approved' as const };
+        }
+        return r;
+      });
+      setPaymentRequests(updated);
+      await AsyncStorage.setItem('dave_payment_requests', JSON.stringify(updated));
+    } catch (e) { /* */ }
   };
 
   const rejectPayment = async (id: string) => {
-    const updated = paymentRequests.map(r => r.id === id ? { ...r, status: 'rejected' as const } : r);
-    setPaymentRequests(updated);
-    await AsyncStorage.setItem('dave_payment_requests', JSON.stringify(updated));
+    try {
+      const updated = paymentRequests.map(r => r.id === id ? { ...r, status: 'rejected' as const } : r);
+      setPaymentRequests(updated);
+      await AsyncStorage.setItem('dave_payment_requests', JSON.stringify(updated));
+    } catch (e) { /* */ }
   };
 
   const activateUserTier = async (userId: string, tier: UserTier) => {
-    const updatedUsers = registeredUsers.map(u => {
-      if (u.bookmakerId === userId) return { ...u, tier, tierExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000 };
-      return u;
-    });
-    setRegisteredUsers(updatedUsers);
-    await AsyncStorage.setItem('dave_registered_users', JSON.stringify(updatedUsers));
-    if (user && user.bookmakerId === userId) {
-      await saveUser({ ...user, tier, tierExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000 });
-    }
+    try {
+      const updatedUsers = registeredUsers.map(u => {
+        if (u.bookmakerId === userId) return { ...u, tier, tierExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000 };
+        return u;
+      });
+      setRegisteredUsers(updatedUsers);
+      await AsyncStorage.setItem('dave_registered_users', JSON.stringify(updatedUsers));
+      if (user && user.bookmakerId === userId) {
+        await saveUser({ ...user, tier, tierExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000 });
+      }
+    } catch (e) { /* */ }
   };
 
   return (

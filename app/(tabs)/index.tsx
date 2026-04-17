@@ -1,25 +1,35 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Linking, Dimensions,
+  View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { theme } from '../../constants/theme';
 import { config } from '../../constants/config';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMatches } from '../../contexts/MatchContext';
 
-const { width } = Dimensions.get('window');
-
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, isAuthenticated, remainingAnalyses } = useAuth();
-  const { liveMatches, allMatches, leagues, isLoading, lastUpdate, refresh, combos } = useMatches();
+  const { liveMatches, allMatches, isLoading, lastUpdate, refresh, combos } = useMatches();
+  const [screenWidth, setScreenWidth] = useState(375);
+
+  useEffect(() => {
+    try {
+      const { Dimensions } = require('react-native');
+      const dims = Dimensions.get('window');
+      setScreenWidth(Math.max(320, dims.width));
+      const sub = Dimensions.addEventListener('change', ({ window }: any) => {
+        setScreenWidth(Math.max(320, window.width));
+      });
+      return () => { try { sub?.remove(); } catch (e) { /* */ } };
+    } catch (e) { /* */ }
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) { router.replace('/login'); }
@@ -27,7 +37,11 @@ export default function HomeScreen() {
 
   const formatTime = (date: Date | null) => {
     if (!date) return '--:--';
-    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    try {
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return '--:--';
+    }
   };
 
   const isFree = user?.tier === 'free' && !user?.isAdmin;
@@ -44,52 +58,52 @@ export default function HomeScreen() {
         {/* Header */}
         <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
           <View>
-            <Text style={styles.brandName}>DAVE <Text style={{ color: theme.primary }}>ARENA 7</Text></Text>
+            <Text style={styles.brandName}>{'DAVE '}<Text style={{ color: theme.primary }}>ARENA 7</Text></Text>
             <Text style={styles.headerSub}>FIFA Predictions Pro</Text>
           </View>
           <View style={styles.headerRight}>
-            <View style={[styles.tierPill, user?.isAdmin && { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
-              <Text style={[styles.tierPillText, user?.isAdmin && { color: theme.error }]}>{tierLabel}</Text>
+            <View style={[styles.tierPill, user?.isAdmin ? { backgroundColor: 'rgba(239,68,68,0.15)' } : undefined]}>
+              <Text style={[styles.tierPillText, user?.isAdmin ? { color: theme.error } : undefined]}>{tierLabel}</Text>
             </View>
-            <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/profile'); }} style={styles.profileBtn}>
+            <Pressable onPress={() => router.push('/profile')} style={styles.profileBtn}>
               <MaterialIcons name="person" size={22} color={theme.textSecondary} />
             </Pressable>
           </View>
         </Animated.View>
 
         {/* Free user quota banner */}
-        {isFree && (
+        {isFree ? (
           <Animated.View entering={FadeInDown.delay(50).duration(400)}>
             <Pressable style={styles.quotaBanner} onPress={() => router.push('/vip')}>
               <MaterialIcons name="info" size={16} color={theme.warning} />
               <Text style={styles.quotaText}>
-                {remainingAnalyses} analyse{remainingAnalyses > 1 ? 's' : ''} restante{remainingAnalyses > 1 ? 's' : ''} aujourd'hui
+                {`${remainingAnalyses} analyse${remainingAnalyses > 1 ? 's' : ''} restante${remainingAnalyses > 1 ? 's' : ''} aujourd'hui`}
               </Text>
-              <Text style={styles.quotaUpgrade}>Upgrade →</Text>
+              <Text style={styles.quotaUpgrade}>{"Upgrade \u2192"}</Text>
             </Pressable>
           </Animated.View>
-        )}
+        ) : null}
 
         {/* Live Banner */}
-        {liveMatches.length > 0 && (
+        {liveMatches.length > 0 ? (
           <Animated.View entering={FadeInDown.delay(100).duration(500)}>
-            <Pressable style={styles.liveBanner} onPress={() => { Haptics.selectionAsync(); router.push('/(tabs)/fifa'); }}>
+            <Pressable style={styles.liveBanner} onPress={() => router.push('/(tabs)/fifa')}>
               <View style={styles.liveDot} />
               <Text style={styles.liveText}>EN DIRECT</Text>
-              <View style={styles.liveBadge}><Text style={styles.liveBadgeText}>{liveMatches.length} match{liveMatches.length > 1 ? 's' : ''}</Text></View>
+              <View style={styles.liveBadge}><Text style={styles.liveBadgeText}>{`${liveMatches.length} match${liveMatches.length > 1 ? 's' : ''}`}</Text></View>
               <View style={{ flex: 1 }} />
-              <Text style={styles.liveUpdate}>MAJ {formatTime(lastUpdate)}</Text>
+              <Text style={styles.liveUpdate}>{`MAJ ${formatTime(lastUpdate)}`}</Text>
               <MaterialIcons name="chevron-right" size={20} color={theme.textSecondary} />
             </Pressable>
           </Animated.View>
-        )}
+        ) : null}
 
         {/* Live Match Cards */}
-        {liveMatches.length > 0 && (
+        {liveMatches.length > 0 ? (
           <Animated.View entering={FadeInDown.delay(200).duration(500)}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }} style={{ marginBottom: 20 }}>
               {liveMatches.slice(0, 5).map((match) => (
-                <Pressable key={match.id} style={styles.liveCard} onPress={() => { Haptics.selectionAsync(); router.push(`/match/${match.id}`); }}>
+                <Pressable key={match.id} style={[styles.liveCard, { width: Math.max(260, screenWidth * 0.75) }]} onPress={() => router.push(`/match/${match.id}`)}>
                   <View style={styles.liveCardHeader}>
                     <Text style={styles.liveCardLeague} numberOfLines={1}>{match.league}</Text>
                     <View style={styles.minuteBadge}><Text style={styles.minuteText}>{match.minute}</Text></View>
@@ -115,15 +129,15 @@ export default function HomeScreen() {
                       <Text style={styles.teamName} numberOfLines={1}>{match.awayTeam}</Text>
                     </View>
                   </View>
-                  <Pressable style={styles.predBtn} onPress={() => { Haptics.selectionAsync(); router.push(`/match/${match.id}`); }}>
+                  <Pressable style={styles.predBtn} onPress={() => router.push(`/match/${match.id}`)}>
                     <MaterialIcons name="visibility" size={14} color={theme.primary} />
-                    <Text style={styles.predBtnText}>Voir les prédictions</Text>
+                    <Text style={styles.predBtnText}>Voir les predictions</Text>
                   </Pressable>
                 </Pressable>
               ))}
             </ScrollView>
           </Animated.View>
-        )}
+        ) : null}
 
         {/* Stats Row */}
         <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.statsRow}>
@@ -140,13 +154,13 @@ export default function HomeScreen() {
           <View style={styles.statCard}>
             <MaterialIcons name="layers" size={24} color={theme.accent} />
             <Text style={styles.statValue}>{combos.length}</Text>
-            <Text style={styles.statLabel}>Combinés</Text>
+            <Text style={styles.statLabel}>Combines</Text>
           </View>
         </Animated.View>
 
         {/* Quick Actions */}
         <Animated.View entering={FadeInDown.delay(350).duration(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Accès Rapide</Text>
+          <Text style={styles.sectionTitle}>Acces Rapide</Text>
           <View style={styles.quickGrid}>
             <Pressable style={styles.quickCard} onPress={() => router.push('/(tabs)/fifa')}>
               <MaterialIcons name="sports-esports" size={28} color={theme.accent} />
@@ -156,13 +170,13 @@ export default function HomeScreen() {
               <MaterialIcons name="star" size={28} color={theme.warning} />
               <Text style={styles.quickText}>VIP</Text>
             </Pressable>
-            {user?.isAdmin && (
+            {user?.isAdmin ? (
               <Pressable style={styles.quickCard} onPress={() => router.push('/admin')}>
                 <MaterialIcons name="admin-panel-settings" size={28} color={theme.error} />
                 <Text style={styles.quickText}>Admin</Text>
               </Pressable>
-            )}
-            <Pressable style={styles.quickCard} onPress={() => Linking.openURL(config.telegram)}>
+            ) : null}
+            <Pressable style={styles.quickCard} onPress={() => { try { Linking.openURL(config.telegram); } catch (e) { /* */ } }}>
               <MaterialIcons name="send" size={28} color="#0088CC" />
               <Text style={styles.quickText}>Telegram</Text>
             </Pressable>
@@ -174,7 +188,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Bookmakers Partenaires</Text>
           <View style={styles.bookmakerGrid}>
             {Object.entries(config.bookmakers).map(([key, bm]) => (
-              <Pressable key={key} style={styles.bookmakerItem} onPress={() => { Haptics.selectionAsync(); Linking.openURL(bm.url); }}>
+              <Pressable key={key} style={styles.bookmakerItem} onPress={() => { try { Linking.openURL(bm.url); } catch (e) { /* */ } }}>
                 <Image
                   source={key === '1win' ? require('../../assets/images/1win-logo.png') : key === '1xbet' ? require('../../assets/images/1xbet-logo.png') : require('../../assets/images/melbet-logo.png')}
                   style={styles.bmLogo} contentFit="contain"
@@ -188,8 +202,8 @@ export default function HomeScreen() {
 
         {/* Social */}
         <Animated.View entering={FadeInDown.delay(500).duration(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Communauté</Text>
-          <Pressable style={[styles.socialCard, { backgroundColor: 'rgba(255,0,0,0.1)' }]} onPress={() => Linking.openURL(config.youtube)}>
+          <Text style={styles.sectionTitle}>Communaute</Text>
+          <Pressable style={[styles.socialCard, { backgroundColor: 'rgba(255,0,0,0.1)' }]} onPress={() => { try { Linking.openURL(config.youtube); } catch (e) { /* */ } }}>
             <MaterialIcons name="play-circle-filled" size={32} color="#FF0000" />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.socialTitle}>YouTube</Text>
@@ -197,7 +211,7 @@ export default function HomeScreen() {
             </View>
             <MaterialIcons name="chevron-right" size={20} color={theme.textMuted} />
           </Pressable>
-          <Pressable style={[styles.socialCard, { backgroundColor: 'rgba(0,136,204,0.1)', marginTop: 10 }]} onPress={() => Linking.openURL(config.telegram)}>
+          <Pressable style={[styles.socialCard, { backgroundColor: 'rgba(0,136,204,0.1)', marginTop: 10 }]} onPress={() => { try { Linking.openURL(config.telegram); } catch (e) { /* */ } }}>
             <MaterialIcons name="send" size={28} color="#0088CC" />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.socialTitle}>Telegram</Text>
@@ -229,7 +243,7 @@ const styles = StyleSheet.create({
   liveBadge: { marginLeft: 8, backgroundColor: 'rgba(239,68,68,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   liveBadgeText: { fontSize: 11, color: theme.live, fontWeight: '600' },
   liveUpdate: { fontSize: 11, color: theme.textMuted, marginRight: 4 },
-  liveCard: { width: width * 0.75, backgroundColor: theme.surface, borderRadius: theme.radius.lg, padding: 14, borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' },
+  liveCard: { backgroundColor: theme.surface, borderRadius: theme.radius.lg, padding: 14, borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' },
   liveCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   liveCardLeague: { fontSize: 12, color: theme.textMuted, flex: 1 },
   minuteBadge: { backgroundColor: 'rgba(239,68,68,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },

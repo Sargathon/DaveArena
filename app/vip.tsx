@@ -7,12 +7,21 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useAlert } from '@/template';
 import { theme } from '../constants/theme';
 import { config } from '../constants/config';
 import { useAuth } from '../contexts/AuthContext';
+
+let Haptics: any = null;
+try { Haptics = require('expo-haptics'); } catch (e) { /* */ }
+
+function safeHaptics(type: string) {
+  try {
+    if (type === 'selection') Haptics?.selectionAsync();
+    else if (type === 'success') Haptics?.notificationAsync?.(Haptics?.NotificationFeedbackType?.Success);
+  } catch (e) { /* */ }
+}
 
 export default function VipScreen() {
   const insets = useSafeAreaInsets();
@@ -28,7 +37,7 @@ export default function VipScreen() {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        showAlert('Permission requise', 'Autorisez l\'acces a la galerie pour envoyer la capture.');
+        showAlert('Permission requise', 'Autorisez l acces a la galerie pour envoyer la capture.');
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -38,10 +47,10 @@ export default function VipScreen() {
       });
       if (!result.canceled && result.assets?.[0]) {
         setScreenshotUri(result.assets[0].uri);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        safeHaptics('success');
       }
     } catch (e) {
-      showAlert('Erreur', 'Impossible de selectionner l\'image');
+      showAlert('Erreur', 'Impossible de selectionner l image');
     }
   };
 
@@ -58,7 +67,7 @@ export default function VipScreen() {
       });
       if (!result.canceled && result.assets?.[0]) {
         setScreenshotUri(result.assets[0].uri);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        safeHaptics('success');
       }
     } catch (e) {
       showAlert('Erreur', 'Impossible de prendre la photo');
@@ -82,9 +91,9 @@ export default function VipScreen() {
         ]
       );
     } else if (selectedPayment === 'chariow') {
-      Linking.openURL(config.payments.chariow.url);
+      try { Linking.openURL(config.payments.chariow.url); } catch (e) { /* */ }
       setTimeout(() => {
-        showAlert('Confirmation Chariow', 'Avez-vous effectue le paiement ?', [
+        showAlert('Confirmation Chariow', 'Avez-vous effectue le paiement?', [
           { text: 'Non', style: 'cancel' },
           { text: 'Oui', onPress: () => submitRequest(plan.name, 'Chariow', plan.price) },
         ]);
@@ -103,11 +112,11 @@ export default function VipScreen() {
       amount,
       screenshotUri: screenshotUri || undefined,
     });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    safeHaptics('success');
     setSubmitted(true);
     showAlert(
       'Demande envoyee!',
-      `Plan ${planName} demande. L\'admin va valider sous peu.\n\nTelegram: ${config.telegramAdmin}`
+      `Plan ${planName} demande. L admin va valider sous peu.\n\nTelegram: ${config.telegramAdmin}`
     );
   };
 
@@ -128,18 +137,16 @@ export default function VipScreen() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Current Status */}
         <Animated.View entering={FadeInDown.duration(400)} style={styles.statusCard}>
           <MaterialIcons name="verified-user" size={24} color={theme.primary} />
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.statusTitle}>Votre plan: {tierLabel}</Text>
+            <Text style={styles.statusTitle}>{`Votre plan: ${tierLabel}`}</Text>
             <Text style={styles.statusSub}>
               {user?.tier === 'free' ? `${Math.max(0, 5 - (user?.analysesUsedToday || 0))} analyses restantes` : 'Acces illimite'}
             </Text>
           </View>
         </Animated.View>
 
-        {/* VIP Features Banner */}
         <Animated.View entering={FadeInDown.delay(50).duration(400)} style={styles.featBanner}>
           <Text style={styles.featBannerTitle}>Pourquoi passer VIP ?</Text>
           <View style={styles.featRow}>
@@ -148,7 +155,7 @@ export default function VipScreen() {
           </View>
           <View style={styles.featRow}>
             <MaterialIcons name="layers" size={16} color={theme.accent} />
-            <Text style={styles.featText}>Tous les combines (cote 2, 5, 10+, scores exacts)</Text>
+            <Text style={styles.featText}>Tous les combines (cote 2, 3 sur, 5, 10+, scores exacts)</Text>
           </View>
           <View style={styles.featRow}>
             <MaterialIcons name="flash-on" size={16} color={theme.warning} />
@@ -160,27 +167,26 @@ export default function VipScreen() {
           </View>
         </Animated.View>
 
-        {/* Plans */}
         {config.pricing.map((plan, index) => (
           <Animated.View key={plan.id} entering={FadeInDown.delay(100 + index * 80).duration(400)}>
             <Pressable
-              style={[styles.planCard, selectedPlan === plan.id && styles.planCardActive]}
-              onPress={() => { Haptics.selectionAsync(); setSelectedPlan(plan.id); }}
+              style={[styles.planCard, selectedPlan === plan.id ? styles.planCardActive : undefined]}
+              onPress={() => { safeHaptics('selection'); setSelectedPlan(plan.id); }}
             >
-              {plan.id === 'premium' && (
+              {plan.id === 'premium' ? (
                 <View style={styles.popularBadge}>
                   <Text style={styles.popularText}>POPULAIRE</Text>
                 </View>
-              )}
+              ) : null}
               <View style={styles.planHeader}>
                 <View>
-                  <Text style={[styles.planName, selectedPlan === plan.id && { color: theme.primary }]}>{plan.name}</Text>
+                  <Text style={[styles.planName, selectedPlan === plan.id ? { color: theme.primary } : undefined]}>{plan.name}</Text>
                   <Text style={styles.planDuration}>{plan.duration}</Text>
                 </View>
                 <View style={styles.priceBox}>
                   <Text style={styles.priceValue}>{plan.price.toLocaleString()}</Text>
                   <Text style={styles.priceCurrency}>FCFA</Text>
-                  <Text style={styles.priceEur}>{plan.priceEur.toFixed(2)} EUR</Text>
+                  <Text style={styles.priceEur}>{`${plan.priceEur.toFixed(2)} EUR`}</Text>
                 </View>
               </View>
               <View style={styles.featureList}>
@@ -195,28 +201,27 @@ export default function VipScreen() {
           </Animated.View>
         ))}
 
-        {/* Payment Methods */}
         <Text style={styles.sectionTitle}>Moyen de paiement</Text>
         <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.paymentGrid}>
           <Pressable
-            style={[styles.paymentCard, selectedPayment === 'wave' && styles.paymentCardActive]}
-            onPress={() => { Haptics.selectionAsync(); setSelectedPayment('wave'); }}
+            style={[styles.paymentCard, selectedPayment === 'wave' ? styles.paymentCardActive : undefined]}
+            onPress={() => { safeHaptics('selection'); setSelectedPayment('wave'); }}
           >
             <Image source={require('../assets/images/wave-logo.png')} style={styles.paymentLogo} contentFit="contain" />
             <Text style={styles.paymentName}>Wave</Text>
             <Text style={styles.paymentDetail}>{config.payments.wave.number}</Text>
           </Pressable>
           <Pressable
-            style={[styles.paymentCard, selectedPayment === 'chariow' && styles.paymentCardActive]}
-            onPress={() => { Haptics.selectionAsync(); setSelectedPayment('chariow'); }}
+            style={[styles.paymentCard, selectedPayment === 'chariow' ? styles.paymentCardActive : undefined]}
+            onPress={() => { safeHaptics('selection'); setSelectedPayment('chariow'); }}
           >
             <Image source={require('../assets/images/chariow-logo.png')} style={styles.paymentLogo} contentFit="contain" />
             <Text style={styles.paymentName}>Chariow</Text>
             <Text style={styles.paymentDetail}>Boutique</Text>
           </Pressable>
           <Pressable
-            style={[styles.paymentCard, selectedPayment === 'mastercard' && styles.paymentCardActive]}
-            onPress={() => { Haptics.selectionAsync(); setSelectedPayment('mastercard'); }}
+            style={[styles.paymentCard, selectedPayment === 'mastercard' ? styles.paymentCardActive : undefined]}
+            onPress={() => { safeHaptics('selection'); setSelectedPayment('mastercard'); }}
           >
             <Image source={require('../assets/images/mastercard-logo.png')} style={styles.paymentLogo} contentFit="contain" />
             <Text style={styles.paymentName}>MasterCard</Text>
@@ -224,7 +229,6 @@ export default function VipScreen() {
           </Pressable>
         </Animated.View>
 
-        {/* Screenshot Upload */}
         <Text style={styles.sectionTitle}>Capture de paiement</Text>
         <Animated.View entering={FadeInDown.delay(450).duration(400)} style={styles.screenshotSection}>
           <Text style={styles.screenshotInfo}>
@@ -259,10 +263,9 @@ export default function VipScreen() {
           )}
         </Animated.View>
 
-        {/* Subscribe Button */}
         <Animated.View entering={FadeInDown.delay(500).duration(400)}>
           <Pressable
-            style={[styles.subscribeBtn, (!selectedPlan || !selectedPayment) && styles.subscribeBtnDisabled]}
+            style={[styles.subscribeBtn, (!selectedPlan || !selectedPayment) ? styles.subscribeBtnDisabled : undefined]}
             onPress={handleSubscribe}
           >
             <MaterialIcons name={submitted ? 'check' : 'lock-open'} size={18} color="#FFF" />
@@ -272,11 +275,10 @@ export default function VipScreen() {
           </Pressable>
         </Animated.View>
 
-        {/* Info */}
         <Animated.View entering={FadeInDown.delay(550).duration(400)} style={styles.infoBox}>
           <MaterialIcons name="info" size={16} color={theme.accent} />
           <Text style={styles.infoText}>
-            Apres paiement, joignez la capture ici puis confirmez. Vous pouvez aussi envoyer sur Telegram: {config.telegramAdmin}. Activation sous 5 minutes.
+            {`Apres paiement, joignez la capture ici puis confirmez. Vous pouvez aussi envoyer sur Telegram: ${config.telegramAdmin}. Activation sous 5 minutes.`}
           </Text>
         </Animated.View>
       </ScrollView>

@@ -7,7 +7,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+let Haptics: any = null;
+try { Haptics = require('expo-haptics'); } catch (e) { /* haptics not available */ }
 import { theme } from '../../constants/theme';
 import { useMatches } from '../../contexts/MatchContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -32,6 +33,7 @@ function getLeagueFlag(name: string): string {
 
 const COMBO_META: Record<string, { label: string; color: string; icon: string }> = {
   cote2: { label: 'Cote 2 \u00B7 Sur', color: '#10B981', icon: 'verified' },
+  cote3_safe: { label: 'Cote 3 \u00B7 Analyse', color: '#06B6D4', icon: 'shield' },
   cote5: { label: 'Cote 5 \u00B7 Moyen', color: '#F59E0B', icon: 'trending-up' },
   cote10: { label: 'Cote 10++ \u00B7 Risque', color: '#EF4444', icon: 'local-fire-department' },
   score_exact_mt: { label: 'Score Exact MT', color: '#8B5CF6', icon: 'sports-score' },
@@ -106,7 +108,7 @@ export default function FifaScreen() {
   const isVip = user?.isAdmin || (user?.tier !== undefined && user.tier !== 'free') || false;
 
   const toggleLeague = (id: number) => {
-    Haptics.selectionAsync();
+    try { Haptics?.selectionAsync(); } catch (e) { /* */ }
     setExpandedLeagues(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
@@ -127,6 +129,7 @@ export default function FifaScreen() {
     { id: 'all', label: 'Tous' },
     { id: 'live', label: 'Live' },
     { id: 'cote2', label: 'Cote 2' },
+    { id: 'cote3_safe', label: 'Cote 3 Sur' },
     { id: 'cote5', label: 'Cote 5' },
     { id: 'cote10', label: 'Cote 10+' },
     { id: 'score_exact_mt', label: 'Score MT' },
@@ -157,7 +160,7 @@ export default function FifaScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
           {TABS.map(t => (
             <Pressable key={t} style={[styles.tab, activeTab === t && styles.tabActive]}
-              onPress={() => { Haptics.selectionAsync(); setActiveTab(t); }}>
+              onPress={() => { try { Haptics?.selectionAsync(); } catch (e) { /* */ } setActiveTab(t); }}>
               <Text style={[styles.tabText, activeTab === t && styles.tabTextActive]}>{t}</Text>
             </Pressable>
           ))}
@@ -199,7 +202,7 @@ export default function FifaScreen() {
               <Animated.View entering={FadeIn.duration(300)} style={styles.matchList}>
                 {league.matches.map(match => (
                   <Pressable key={match.id} style={styles.matchRow}
-                    onPress={() => { Haptics.selectionAsync(); router.push(`/match/${match.id}`); }}>
+                    onPress={() => { try { Haptics?.selectionAsync(); } catch (e) { /* */ } router.push(`/match/${match.id}`); }}>
                     <View style={styles.matchTeams}>
                       <View style={styles.matchTeamRow}>
                         {match.homeTeamImg ? (
@@ -253,7 +256,7 @@ export default function FifaScreen() {
               {comboFilters.map(f => (
                 <Pressable key={f.id}
                   style={[styles.filterPill, comboFilter === f.id && styles.filterPillActive]}
-                  onPress={() => { Haptics.selectionAsync(); setComboFilter(f.id); }}>
+                  onPress={() => { try { Haptics?.selectionAsync(); } catch (e) { /* */ } setComboFilter(f.id); }}>
                   <Text style={[styles.filterPillText, comboFilter === f.id && styles.filterPillTextActive]}>{f.label}</Text>
                 </Pressable>
               ))}
@@ -262,7 +265,7 @@ export default function FifaScreen() {
             <View style={styles.comboInfo}>
               <MaterialIcons name="auto-awesome" size={16} color={theme.primary} />
               <Text style={styles.comboInfoText}>
-                Combines generes par Poisson, Monte Carlo (5000 sim.) et XGBoost en temps reel. Les scores exacts sont sur des ligues fiables uniquement.
+                Combines generes par Poisson, Monte Carlo (5000 sim.) et XGBoost en temps reel. Combo Sur = cote max 3 bien analyse. Scores exacts sur ligues fiables.
               </Text>
             </View>
 

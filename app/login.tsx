@@ -1,16 +1,19 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, Pressable, StyleSheet, ImageBackground,
-  KeyboardAvoidingView, Platform, ScrollView, Dimensions,
+  KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../constants/theme';
+
+function safeHaptics(fn: () => void) {
+  try { fn(); } catch (e) { /* haptics not available */ }
+}
 
 const bookmakers = [
   { id: '1win', name: '1Win', image: require('../assets/images/1win-logo.png') },
@@ -32,17 +35,15 @@ export default function LoginScreen() {
   const animatedButtonStyle = useAnimatedStyle(() => ({ transform: [{ scale: buttonScale.value }] }));
 
   const handleLogin = async () => {
-    Haptics.selectionAsync();
+    safeHaptics(() => { try { require('expo-haptics').selectionAsync(); } catch (e) { /* */ } });
     buttonScale.value = withSpring(0.95, {}, () => { buttonScale.value = withSpring(1); });
 
     if (isAdminMode) {
       const success = loginAdmin(adminCode);
       if (success) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace('/(tabs)');
       } else {
         setError('Code admin invalide');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
       return;
     }
@@ -52,11 +53,9 @@ export default function LoginScreen() {
 
     const success = await login(bookmakerId, selectedBookmaker);
     if (success) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/(tabs)');
     } else {
       setError('Erreur de connexion');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
@@ -86,7 +85,7 @@ export default function LoginScreen() {
                   {bookmakers.map(bm => (
                     <Pressable key={bm.id}
                       style={[styles.bookmakerCard, selectedBookmaker === bm.id && styles.bookmakerCardActive]}
-                      onPress={() => { Haptics.selectionAsync(); setSelectedBookmaker(bm.id); setError(''); }}>
+                      onPress={() => { setSelectedBookmaker(bm.id); setError(''); }}>
                       <Image source={bm.image} style={styles.bookmakerLogo} contentFit="contain" />
                       <Text style={[styles.bookmakerName, selectedBookmaker === bm.id && styles.bookmakerNameActive]}>{bm.name}</Text>
                     </Pressable>

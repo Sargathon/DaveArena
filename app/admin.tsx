@@ -7,13 +7,22 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+let Haptics: any = null;
+try { Haptics = require('expo-haptics'); } catch (e) { /* */ }
+
+function safeHaptics(type: string) {
+  try {
+    if (type === 'success') Haptics?.notificationAsync(Haptics?.NotificationFeedbackType?.Success);
+    else if (type === 'warning') Haptics?.notificationAsync(Haptics?.NotificationFeedbackType?.Warning);
+  } catch (e) { /* */ }
+}
 import { useAlert } from '@/template';
 import { theme } from '../constants/theme';
 import { config } from '../constants/config';
 import { useAuth, UserTier } from '../contexts/AuthContext';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+const SCREEN_W = 375;
+const SCREEN_H = 700;
 
 const TIER_OPTIONS: { id: UserTier; label: string }[] = [
   { id: 'basic', label: 'Basic' },
@@ -44,16 +53,16 @@ export default function AdminScreen() {
   const pendingCount = paymentRequests.filter(r => r.status === 'pending').length;
 
   const handleApprove = (id: string) => {
-    showAlert('Confirmer', 'Approuver ce paiement et activer l\'acces ?', [
+    showAlert('Confirmer', 'Approuver ce paiement et activer l acces?', [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'Approuver', onPress: () => { approvePayment(id); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } },
+      { text: 'Approuver', onPress: () => { approvePayment(id); safeHaptics('success'); } },
     ]);
   };
 
   const handleReject = (id: string) => {
-    showAlert('Refuser', 'Refuser ce paiement ?', [
+    showAlert('Refuser', 'Refuser ce paiement?', [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'Refuser', style: 'destructive', onPress: () => { rejectPayment(id); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); } },
+      { text: 'Refuser', style: 'destructive', onPress: () => { rejectPayment(id); safeHaptics('warning'); } },
     ]);
   };
 
@@ -63,7 +72,7 @@ export default function AdminScreen() {
         text: opt.label,
         onPress: () => {
           activateUserTier(userId, opt.id);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          safeHaptics('success');
           showAlert('Active', `${userId} est maintenant ${opt.label}`);
         },
       })),
@@ -296,7 +305,7 @@ const styles = StyleSheet.create({
   tierText: { fontSize: 11, fontWeight: '700' },
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: SCREEN_W - 32, height: SCREEN_H * 0.75, position: 'relative' },
+  modalContent: { width: '90%', aspectRatio: 0.65, maxHeight: '80%', position: 'relative' },
   modalClose: { position: 'absolute', top: -40, right: 0, zIndex: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   modalImage: { width: '100%', height: '100%', borderRadius: 12 },
 });

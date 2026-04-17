@@ -23,13 +23,20 @@ export default function MatchDetailScreen() {
   const { canAnalyze, useAnalysis, remainingAnalyses, user } = useAuth();
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [locked, setLocked] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    const match = getMatchById(Number(id));
-    if (match) {
-      if (!canAnalyze()) { setLocked(true); return; }
-      useAnalysis();
-      setPrediction(generatePrediction(match));
+    try {
+      const match = getMatchById(Number(id));
+      if (match) {
+        if (!canAnalyze()) { setLocked(true); return; }
+        useAnalysis();
+        setPrediction(generatePrediction(match));
+      } else {
+        setError(true);
+      }
+    } catch (e) {
+      setError(true);
     }
   }, [id]);
 
@@ -41,7 +48,7 @@ export default function MatchDetailScreen() {
         <MaterialIcons name="lock" size={56} color={theme.warning} />
         <Text style={styles.lockedTitle}>Limite atteinte</Text>
         <Text style={styles.lockedSub}>
-          Vous avez utilise vos {config.freeAnalysisPerDay} analyses gratuites. Passez en VIP pour des analyses illimitees.
+          {`Vous avez utilise vos ${config.freeAnalysisPerDay} analyses gratuites. Passez en VIP pour des analyses illimitees.`}
         </Text>
         <Pressable style={styles.vipBtn} onPress={() => router.push('/vip')}>
           <MaterialIcons name="star" size={16} color="#FFF" />
@@ -49,6 +56,18 @@ export default function MatchDetailScreen() {
         </Pressable>
         <Pressable onPress={() => router.back()} style={styles.backLink}>
           <Text style={{ color: theme.textMuted, fontSize: 14 }}>Retour</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView edges={['top']} style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <MaterialIcons name="error-outline" size={48} color={theme.textMuted} />
+        <Text style={{ color: theme.textSecondary, marginTop: 12, fontSize: 15 }}>Match introuvable</Text>
+        <Pressable onPress={() => router.back()} style={styles.backLink}>
+          <Text style={{ color: theme.primary, fontSize: 14, fontWeight: '600' }}>Retour</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -63,7 +82,9 @@ export default function MatchDetailScreen() {
   }
 
   const getRiskColor = (risk: string) => {
-    switch (risk) { case 'Faible': return theme.success; case 'Moyen': return theme.warning; default: return theme.error; }
+    if (risk === 'Faible') return theme.success;
+    if (risk === 'Moyen') return theme.warning;
+    return theme.error;
   };
 
   return (
@@ -89,12 +110,12 @@ export default function MatchDetailScreen() {
               </Text>
             </View>
           </View>
-          {match.status === 'live' && (
+          {match.status === 'live' ? (
             <View style={styles.liveBadge}>
               <View style={styles.liveDotAnim} />
-              <Text style={styles.liveText}>EN DIRECT - {match.minute}</Text>
+              <Text style={styles.liveText}>{`EN DIRECT - ${match.minute}`}</Text>
             </View>
-          )}
+          ) : null}
           <View style={styles.teamsRow}>
             <View style={styles.teamCol}>
               {match.homeTeamImg ? (
@@ -106,11 +127,11 @@ export default function MatchDetailScreen() {
             </View>
             <View style={styles.scoreSection}>
               {match.score ? (
-                <Text style={styles.bigScore}>{match.score.home} - {match.score.away}</Text>
+                <Text style={styles.bigScore}>{`${match.score.home} - ${match.score.away}`}</Text>
               ) : (
                 <Text style={styles.vsText}>VS</Text>
               )}
-              {match.status !== 'live' && <Text style={styles.startTime}>{match.minute || 'A venir'}</Text>}
+              {match.status !== 'live' ? <Text style={styles.startTime}>{match.minute || 'A venir'}</Text> : null}
             </View>
             <View style={styles.teamCol}>
               {match.awayTeamImg ? (
@@ -138,7 +159,7 @@ export default function MatchDetailScreen() {
         <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.metricsRow}>
           <View style={styles.metricCard}>
             <Text style={styles.metricLabel}>CONFIANCE</Text>
-            <Text style={[styles.metricValue, { color: theme.accent }]}>{prediction.confidence}%</Text>
+            <Text style={[styles.metricValue, { color: theme.accent }]}>{`${prediction.confidence}%`}</Text>
             <View style={styles.metricBar}>
               <View style={[styles.metricBarFill, { width: `${prediction.confidence}%`, backgroundColor: theme.accent }]} />
             </View>
@@ -162,7 +183,7 @@ export default function MatchDetailScreen() {
           ].map((item, i) => (
             <View key={i} style={styles.probItem}>
               <Text style={styles.probTeam} numberOfLines={1}>{item.label}</Text>
-              <Text style={[styles.probPercent, item.value === Math.max(prediction.result1X2.home, prediction.result1X2.draw, prediction.result1X2.away) && { color: item.color }]}>{item.value}%</Text>
+              <Text style={[styles.probPercent, item.value === Math.max(prediction.result1X2.home, prediction.result1X2.draw, prediction.result1X2.away) ? { color: item.color } : undefined]}>{`${item.value}%`}</Text>
               <View style={styles.probBar}>
                 <View style={[styles.probBarFill, { width: `${item.value}%`, backgroundColor: item.color }]} />
               </View>
@@ -175,9 +196,9 @@ export default function MatchDetailScreen() {
           <Text style={styles.sectionTitle}>Scores Probables (Temps reglementaire)</Text>
           <View style={styles.scoresGrid}>
             {prediction.scores.map((s, i) => (
-              <View key={i} style={[styles.scoreCard, i === 0 && styles.scoreCardPrimary]}>
-                <Text style={[styles.scoreValue, i === 0 && { color: theme.primary }]}>{s.score}</Text>
-                <Text style={styles.scoreProbability}>{s.probability}%</Text>
+              <View key={i} style={[styles.scoreCard, i === 0 ? styles.scoreCardPrimary : undefined]}>
+                <Text style={[styles.scoreValue, i === 0 ? { color: theme.primary } : undefined]}>{s.score}</Text>
+                <Text style={styles.scoreProbability}>{`${s.probability}%`}</Text>
                 {i === 0 ? <View style={styles.scoreBest}><Text style={styles.scoreBestText}>BEST</Text></View> : null}
               </View>
             ))}
@@ -193,7 +214,7 @@ export default function MatchDetailScreen() {
               {prediction.halfTimeScores.map((s, i) => (
                 <View key={i} style={styles.halfScoreRow}>
                   <Text style={styles.halfScore}>{s.score}</Text>
-                  <Text style={styles.halfPct}>{s.probability}%</Text>
+                  <Text style={styles.halfPct}>{`${s.probability}%`}</Text>
                 </View>
               ))}
             </View>
@@ -203,7 +224,7 @@ export default function MatchDetailScreen() {
               {prediction.secondHalfScores.map((s, i) => (
                 <View key={i} style={styles.halfScoreRow}>
                   <Text style={styles.halfScore}>{s.score}</Text>
-                  <Text style={styles.halfPct}>{s.probability}%</Text>
+                  <Text style={styles.halfPct}>{`${s.probability}%`}</Text>
                 </View>
               ))}
             </View>
@@ -219,39 +240,39 @@ export default function MatchDetailScreen() {
               <View style={styles.marketRow}>
                 <View style={styles.marketItem}>
                   <Text style={styles.marketLabel}>Oui</Text>
-                  <Text style={[styles.marketValue, prediction.btts.yes > prediction.btts.no && { color: theme.success }]}>{prediction.btts.yes}%</Text>
+                  <Text style={[styles.marketValue, prediction.btts.yes > prediction.btts.no ? { color: theme.success } : undefined]}>{`${prediction.btts.yes}%`}</Text>
                 </View>
                 <View style={styles.marketItem}>
                   <Text style={styles.marketLabel}>Non</Text>
-                  <Text style={[styles.marketValue, prediction.btts.no > prediction.btts.yes && { color: theme.error }]}>{prediction.btts.no}%</Text>
+                  <Text style={[styles.marketValue, prediction.btts.no > prediction.btts.yes ? { color: theme.error } : undefined]}>{`${prediction.btts.no}%`}</Text>
                 </View>
               </View>
             </View>
             <View style={styles.marketCard}>
-              <Text style={styles.marketTitle}>Over/Under {prediction.overUnder.line}</Text>
+              <Text style={styles.marketTitle}>{`Over/Under ${prediction.overUnder.line}`}</Text>
               <View style={styles.marketRow}>
                 <View style={styles.marketItem}>
                   <Text style={styles.marketLabel}>Over</Text>
-                  <Text style={[styles.marketValue, prediction.overUnder.over > prediction.overUnder.under && { color: theme.success }]}>{prediction.overUnder.over}%</Text>
+                  <Text style={[styles.marketValue, prediction.overUnder.over > prediction.overUnder.under ? { color: theme.success } : undefined]}>{`${prediction.overUnder.over}%`}</Text>
                 </View>
                 <View style={styles.marketItem}>
                   <Text style={styles.marketLabel}>Under</Text>
-                  <Text style={[styles.marketValue, prediction.overUnder.under > prediction.overUnder.over && { color: theme.error }]}>{prediction.overUnder.under}%</Text>
+                  <Text style={[styles.marketValue, prediction.overUnder.under > prediction.overUnder.over ? { color: theme.error } : undefined]}>{`${prediction.overUnder.under}%`}</Text>
                 </View>
               </View>
             </View>
           </View>
           <View style={styles.marketsGrid}>
             <View style={styles.marketCard}>
-              <Text style={styles.marketTitle}>Corners {prediction.corners.line}</Text>
+              <Text style={styles.marketTitle}>{`Corners ${prediction.corners.line}`}</Text>
               <View style={styles.marketRow}>
-                <View style={styles.marketItem}><Text style={styles.marketLabel}>Over</Text><Text style={styles.marketValue}>{prediction.corners.over}%</Text></View>
-                <View style={styles.marketItem}><Text style={styles.marketLabel}>Under</Text><Text style={styles.marketValue}>{prediction.corners.under}%</Text></View>
+                <View style={styles.marketItem}><Text style={styles.marketLabel}>Over</Text><Text style={styles.marketValue}>{`${prediction.corners.over}%`}</Text></View>
+                <View style={styles.marketItem}><Text style={styles.marketLabel}>Under</Text><Text style={styles.marketValue}>{`${prediction.corners.under}%`}</Text></View>
               </View>
             </View>
             <View style={styles.marketCard}>
               <Text style={styles.marketTitle}>Total Buts</Text>
-              <Text style={[styles.marketValue, { textAlign: 'center', marginTop: 6 }]}>{prediction.totalGoals.prediction} buts</Text>
+              <Text style={[styles.marketValue, { textAlign: 'center', marginTop: 6 }]}>{`${prediction.totalGoals.prediction} buts`}</Text>
             </View>
           </View>
         </Animated.View>
@@ -269,7 +290,7 @@ export default function MatchDetailScreen() {
                   <Text style={styles.aiPred}>{ai.prediction}</Text>
                 </View>
                 <View style={styles.aiConf}>
-                  <Text style={[styles.aiConfText, { color: ai.confidence > 60 ? theme.success : theme.warning }]}>{ai.confidence}%</Text>
+                  <Text style={[styles.aiConfText, { color: ai.confidence > 60 ? theme.success : theme.warning }]}>{`${ai.confidence}%`}</Text>
                 </View>
               </View>
             );

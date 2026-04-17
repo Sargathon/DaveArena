@@ -7,10 +7,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { theme } from '../constants/theme';
 import { config } from '../constants/config';
 import { useAuth } from '../contexts/AuthContext';
+
+let Haptics: any = null;
+try { Haptics = require('expo-haptics'); } catch (e) { /* */ }
+
+function safeLink(url: string) { try { Linking.openURL(url); } catch (e) { /* */ } }
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -18,7 +22,7 @@ export default function ProfileScreen() {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    try { Haptics?.notificationAsync?.(Haptics?.NotificationFeedbackType?.Warning); } catch (e) { /* */ }
     logout();
     router.replace('/login');
   };
@@ -30,7 +34,7 @@ export default function ProfileScreen() {
     <SafeAreaView edges={['top']} style={styles.container}>
       <View style={styles.header}>
         <Image source={require('../assets/images/logo.png')} style={styles.headerLogo} contentFit="contain" />
-        <Text style={styles.headerTitle}>DAVE <Text style={{ color: theme.primary }}>ARENA 7</Text></Text>
+        <Text style={styles.headerTitle}>{'DAVE '}<Text style={{ color: theme.primary }}>ARENA 7</Text></Text>
         <View style={{ flex: 1 }} />
         <Pressable onPress={() => router.back()} style={styles.closeBtn}>
           <MaterialIcons name="close" size={22} color={theme.textPrimary} />
@@ -38,7 +42,6 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
-        {/* User Info */}
         <Animated.View entering={FadeInDown.duration(400)} style={styles.userCard}>
           <View style={styles.avatar}><MaterialIcons name="person" size={32} color={theme.textMuted} /></View>
           <View style={{ flex: 1 }}>
@@ -50,85 +53,79 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        {/* VIP Access */}
-        {user?.tier === 'free' && !user?.isAdmin && (
+        {user?.tier === 'free' && !user?.isAdmin ? (
           <Animated.View entering={FadeInDown.delay(80).duration(400)}>
             <Pressable style={styles.vipCard} onPress={() => router.push('/vip')}>
               <MaterialIcons name="star" size={24} color={theme.warning} />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={styles.vipTitle}>Passer en VIP</Text>
-                <Text style={styles.vipSub}>Analyses illimitées + Combinés + Support prioritaire</Text>
+                <Text style={styles.vipSub}>Analyses illimitees + Combines + Support prioritaire</Text>
               </View>
               <MaterialIcons name="chevron-right" size={20} color={theme.primary} />
             </Pressable>
           </Animated.View>
-        )}
+        ) : null}
 
-        {/* Admin Panel */}
-        {user?.isAdmin && (
+        {user?.isAdmin ? (
           <Animated.View entering={FadeInDown.delay(80).duration(400)}>
             <Pressable style={styles.adminCard} onPress={() => router.push('/admin')}>
               <MaterialIcons name="admin-panel-settings" size={24} color={theme.error} />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={styles.vipTitle}>Panel Administrateur</Text>
-                <Text style={styles.vipSub}>Gérer les utilisateurs et paiements</Text>
+                <Text style={styles.vipSub}>Gerer les utilisateurs et paiements</Text>
               </View>
               <MaterialIcons name="chevron-right" size={20} color={theme.error} />
             </Pressable>
           </Animated.View>
-        )}
+        ) : null}
 
-        {/* Telegram */}
         <Animated.View entering={FadeInDown.delay(150).duration(400)} style={styles.socialSection}>
           <View style={styles.socialHeader}>
             <MaterialIcons name="send" size={24} color="#0088CC" />
             <Text style={styles.socialTitle}>Telegram</Text>
           </View>
-          <Pressable style={styles.socialLink} onPress={() => Linking.openURL(config.telegram)}>
-            <View style={{ flex: 1 }}><Text style={styles.linkTitle}>Canal & Support</Text><Text style={styles.linkHandle}>@davecapital07</Text></View>
+          <Pressable style={styles.socialLink} onPress={() => safeLink(config.telegram)}>
+            <View style={{ flex: 1 }}><Text style={styles.linkTitle}>Canal et Support</Text><Text style={styles.linkHandle}>@davecapital07</Text></View>
             <MaterialIcons name="chevron-right" size={20} color={theme.textMuted} />
           </Pressable>
         </Animated.View>
 
-        {/* YouTube */}
         <Animated.View entering={FadeInDown.delay(200).duration(400)}>
-          <Pressable style={styles.youtubeCard} onPress={() => Linking.openURL(config.youtube)}>
+          <Pressable style={styles.youtubeCard} onPress={() => safeLink(config.youtube)}>
             <MaterialIcons name="play-circle-filled" size={40} color="#FF0000" />
-            <View style={{ flex: 1, marginLeft: 12 }}><Text style={styles.ytTitle}>Chaîne YouTube</Text><Text style={styles.ytHandle}>@smoothydsj</Text></View>
+            <View style={{ flex: 1, marginLeft: 12 }}><Text style={styles.ytTitle}>Chaine YouTube</Text><Text style={styles.ytHandle}>@smoothydsj</Text></View>
             <MaterialIcons name="chevron-right" size={20} color={theme.textMuted} />
           </Pressable>
         </Animated.View>
 
-        {/* Links */}
         <Animated.View entering={FadeInDown.delay(250).duration(400)} style={styles.linksSection}>
-          <Pressable style={styles.linkRow} onPress={() => Haptics.selectionAsync()}>
+          <Pressable style={styles.linkRow} onPress={() => { try { Haptics?.selectionAsync(); } catch (e) { /* */ } }}>
             <MaterialIcons name="link" size={20} color={theme.textSecondary} />
             <Text style={styles.linkRowText}>Lier mon compte</Text>
             <View style={{ flex: 1 }} /><MaterialIcons name="chevron-right" size={20} color={theme.textMuted} />
           </Pressable>
-          <Pressable style={styles.linkRow} onPress={() => Haptics.selectionAsync()}>
+          <Pressable style={styles.linkRow} onPress={() => { try { Haptics?.selectionAsync(); } catch (e) { /* */ } }}>
             <MaterialIcons name="share" size={20} color={theme.textSecondary} />
-            <Text style={styles.linkRowText}>Partager à un ami</Text>
+            <Text style={styles.linkRowText}>Partager a un ami</Text>
             <View style={{ flex: 1 }} /><MaterialIcons name="chevron-right" size={20} color={theme.textMuted} />
           </Pressable>
-          <Pressable style={styles.linkRow} onPress={() => Haptics.selectionAsync()}>
+          <Pressable style={styles.linkRow} onPress={() => { try { Haptics?.selectionAsync(); } catch (e) { /* */ } }}>
             <MaterialIcons name="star" size={20} color={theme.warning} />
-            <Text style={styles.linkRowText}>Noter l'application</Text>
+            <Text style={styles.linkRowText}>Noter l application</Text>
             <View style={{ flex: 1 }} /><MaterialIcons name="chevron-right" size={20} color={theme.textMuted} />
           </Pressable>
         </Animated.View>
 
-        {/* Logout */}
         <Animated.View entering={FadeInDown.delay(300).duration(400)}>
           <Pressable style={styles.logoutBtn} onPress={handleLogout}>
             <MaterialIcons name="logout" size={18} color={theme.textMuted} />
-            <Text style={styles.logoutText}>Déconnexion</Text>
+            <Text style={styles.logoutText}>Deconnexion</Text>
           </Pressable>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(350).duration(400)} style={styles.footer}>
-          <Text style={styles.footerVersion}>{config.appName} v{config.version}</Text>
-          <Text style={styles.footerCredit}>Designed & Copyrighted by Desire CLBY</Text>
+          <Text style={styles.footerVersion}>{`${config.appName} v${config.version}`}</Text>
+          <Text style={styles.footerCredit}>Designed and Copyrighted by Desire CLBY</Text>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

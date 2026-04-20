@@ -10,22 +10,26 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { liveMatches } = useMatches();
 
+  const tabBarHeight = Platform.select({
+    ios: Math.max(insets.bottom, 10) + 56,
+    android: Math.max(insets.bottom, 10) + 56,
+    default: 64,
+  });
+
+  const tabBarPaddingBottom = Platform.select({
+    ios: Math.max(insets.bottom, 8),
+    android: Math.max(insets.bottom, 8),
+    default: 8,
+  });
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          height: Platform.select({
-            ios: insets.bottom + 60,
-            android: insets.bottom + 60,
-            default: 70,
-          }),
+          height: tabBarHeight,
           paddingTop: 6,
-          paddingBottom: Platform.select({
-            ios: insets.bottom + 8,
-            android: insets.bottom + 8,
-            default: 8,
-          }),
+          paddingBottom: tabBarPaddingBottom,
           backgroundColor: 'rgba(10, 10, 15, 0.98)',
           borderTopWidth: 1,
           borderTopColor: theme.border,
@@ -63,7 +67,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <View>
               <MaterialIcons name="sports-esports" size={size} color={color} />
-              {liveMatches.length > 0 && (
+              {liveMatches.length > 0 ? (
                 <View
                   style={{
                     position: 'absolute',
@@ -81,7 +85,7 @@ export default function TabLayout() {
                     {liveMatches.length}
                   </Text>
                 </View>
-              )}
+              ) : null}
             </View>
           ),
         }}

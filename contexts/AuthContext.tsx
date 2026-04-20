@@ -60,28 +60,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
   const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const loadData = async () => {
     try {
-      const [stored, reqs, users] = await Promise.all([
-        AsyncStorage.getItem('dave_user'),
-        AsyncStorage.getItem('dave_payment_requests'),
-        AsyncStorage.getItem('dave_registered_users'),
+      const results = await Promise.all([
+        AsyncStorage.getItem('dave_user').catch(() => null),
+        AsyncStorage.getItem('dave_payment_requests').catch(() => null),
+        AsyncStorage.getItem('dave_registered_users').catch(() => null),
       ]);
+      const stored = results[0];
+      const reqs = results[1];
+      const users = results[2];
+
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          const today = new Date().toDateString();
-          if (parsed.lastAnalysisDate !== today) {
-            parsed.analysesUsedToday = 0;
-            parsed.lastAnalysisDate = today;
+          if (parsed && typeof parsed === 'object') {
+            const today = new Date().toDateString();
+            if (parsed.lastAnalysisDate !== today) {
+              parsed.analysesUsedToday = 0;
+              parsed.lastAnalysisDate = today;
+            }
+            setUser(parsed);
           }
-          setUser(parsed);
         } catch (e) { /* invalid stored data */ }
       }
-      if (reqs) { try { setPaymentRequests(JSON.parse(reqs)); } catch (e) { /* */ } }
-      if (users) { try { setRegisteredUsers(JSON.parse(users)); } catch (e) { /* */ } }
+      if (reqs) {
+        try {
+          const parsed = JSON.parse(reqs);
+          if (Array.isArray(parsed)) setPaymentRequests(parsed);
+        } catch (e) { /* */ }
+      }
+      if (users) {
+        try {
+          const parsed = JSON.parse(users);
+          if (Array.isArray(parsed)) setRegisteredUsers(parsed);
+        } catch (e) { /* */ }
+      }
     } catch (_e) {
       // Storage error
     } finally {
@@ -96,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (bookmakerId: string, bookmaker: string): Promise<boolean> => {
     try {
-      if (bookmakerId.length < 9 || bookmakerId.length > 10) return false;
+      if (!bookmakerId || bookmakerId.length < 9 || bookmakerId.length > 10) return false;
       const today = new Date().toDateString();
       const newUser: User = {
         bookmakerId, bookmaker, isAdmin: false,
@@ -116,16 +134,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginAdmin = (code: string): boolean => {
-    if (code === config.adminCode) {
-      const today = new Date().toDateString();
-      const adminUser: User = {
-        bookmakerId: 'ADMIN', bookmaker: 'admin', isAdmin: true,
-        tier: 'admin', analysesUsedToday: 0, lastAnalysisDate: today,
-      };
-      saveUser(adminUser);
-      return true;
+    try {
+      if (code === config.adminCode) {
+        const today = new Date().toDateString();
+        const adminUser: User = {
+          bookmakerId: 'ADMIN', bookmaker: 'admin', isAdmin: true,
+          tier: 'admin', analysesUsedToday: 0, lastAnalysisDate: today,
+        };
+        saveUser(adminUser);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
@@ -164,11 +186,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const newReq: PaymentRequest = {
         ...req,
-        id: `pay_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        id: 'pay_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         status: 'pending',
         createdAt: Date.now(),
       };
-      const updated = [newReq, ...paymentRequests];
+      const updated = [newReq].concat(paymentRequests);
       setPaymentRequests(updated);
       await AsyncStorage.setItem('dave_payment_requests', JSON.stringify(updated));
     } catch (e) { /* */ }

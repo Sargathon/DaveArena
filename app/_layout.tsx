@@ -11,13 +11,13 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <MatchProvider>
-            <Stack screenOptions={{ headerShown: false }}>
+            <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
               <Stack.Screen name="login" />
               <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="match/[id]" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="profile" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="vip" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="admin" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="match/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+              <Stack.Screen name="profile" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+              <Stack.Screen name="vip" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+              <Stack.Screen name="admin" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
             </Stack>
           </MatchProvider>
         </AuthProvider>
